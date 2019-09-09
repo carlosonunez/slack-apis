@@ -18,5 +18,5 @@ services:
       LOAD_PATH: "/app/spec;/app/lib"
     command:
       - --tag
-      - "!wip"
+      - "~wip"
       - --fail-fast
