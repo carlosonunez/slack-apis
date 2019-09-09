@@ -15,8 +15,21 @@ services:
     extends: ruby
     entrypoint: rspec
     environment:
-      LOAD_PATH: "/app/spec;/app/lib"
+      LOAD_PATH: "/app/spec/unit;/app/spec;/app/lib"
     command:
       - --tag
       - "~wip"
       - --fail-fast
+      - --pattern
+      - /app/spec/unit/**/*_spec.rb
+  integration:
+    extends: ruby
+    entrypoint: rspec
+    environment:
+      LOAD_PATH: "/app/spec/unit;/app/spec;/app/lib"
+    command:
+      - --tag
+      - "~wip"
+      - --fail-fast
+      - --pattern
+      - /app/spec/integration/**/*_spec.rb
