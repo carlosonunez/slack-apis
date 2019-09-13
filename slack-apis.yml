@@ -1,0 +1,28 @@
+openapi: "3.0.0"
+info:
+  version: 1.0.0
+  title: Carlos's Slack APIs
+  license:
+    name: MIT
+components:
+  schemas:
+    PingBack:
+      type: object
+      properties:
+        status:
+          type: string
+          description: The status of the API. Is always 'ok'.
+paths:
+  /ping:
+    get:
+      summary: Confirms that Slack API is working
+      operationId: ping
+      tags:
+        - health
+      responses:
+        '200':
+          description: An ack back from the API confirming that it is up.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PingBack'

@@ -12,6 +12,10 @@ provider:
   deploymentBucket:
     name: ${env:SERVERLESS_BUCKET_NAME}
   deploymentPrefix: serverless
+  apiKeys:
+    - default_key
+  tracing:
+    apiGateway: true
 
 package:
   include:
@@ -36,3 +40,4 @@ functions:
       APP_AWS_SECRET_ACCESS_KEY: ${env:APP_AWS_SECRET_ACCESS_KEY}
     events:
       - http: GET ping
+        cors: true
