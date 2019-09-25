@@ -33,3 +33,12 @@ services:
       - --fail-fast
       - --pattern
       - /app/spec/integration/**/*_spec.rb
+  deploy-serverless:
+    image: softinstigate/serverless
+    env_file: .env
+    volumes:
+      - $PWD:/app
+    working_dir: /app
+    command:
+      - deploy
+
