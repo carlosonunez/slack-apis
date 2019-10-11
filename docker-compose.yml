@@ -20,6 +20,8 @@ services:
       - --tag
       - "~wip"
       - --fail-fast
+      - --format
+      - documentation
       - --pattern
       - /app/spec/unit/**/*_spec.rb
   integration:
