@@ -1,4 +1,7 @@
 ---
+plugins:
+  - serverless-domain-manager
+
 service:
   name: slack-apis
 
@@ -36,8 +39,15 @@ functions:
     environment:
       GEM_PATH: vendor/bundle
       USE_AWS: true
-      APP_AWS_ACCESS_KEY_ID: ${env:APP_AWS_ACCESS_KEY_ID}
-      APP_AWS_SECRET_ACCESS_KEY: ${env:APP_AWS_SECRET_ACCESS_KEY}
+      APP_AWS_ACCESS_KEY_ID: ${file(./secrets/app_account_ak)}
+      APP_AWS_SECRET_ACCESS_KEY: ${file(./secrets/app_account_sk)}
     events:
       - http: GET ping
         cors: true
+
+custom:
+  customDomain:
+    domainName: ${env:DOMAIN_TLD}
+    basePath: ${env:DOMAIN_PATH}
+    createRoute53Record: true
+    certificateName: ${env:DOMAIN_PATH}.${env:DOMAIN_TLD}
