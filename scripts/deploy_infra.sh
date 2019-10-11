@@ -1,0 +1,22 @@
+#!/usr/bin/env sh
+TERRAFORM_STATE_S3_KEY="${TERRAFORM_STATE_S3_KEY?Please provide a S3 key to store TF state in.}"
+TERRAFORM_STATE_S3_BUCKET="${TERRAFORM_STATE_S3_BUCKET?Please provide a S3 bucket to store state in.}"
+AWS_REGION="${AWS_REGION?Please provide an AWS region.}"
+
+set -e
+action=$1
+shift
+
+terraform init --backend-config="bucket=${TERRAFORM_STATE_S3_BUCKET}" \
+  --backend-config="key=${TERRAFORM_STATE_S3_KEY}" \
+  --backend-config="region=$AWS_REGION" && \
+
+terraform $action $* && \
+  if [ "$action" == "apply" ]
+  then
+    mkdir -p ./secrets
+    for output_var in app_account_ak app_account_sk
+    do
+      terraform output "$output_var" >> "./secrets/$output_var"
+    done
+  fi
