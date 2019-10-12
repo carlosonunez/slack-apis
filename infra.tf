@@ -2,6 +2,12 @@ terraform {
   backend "s3" {}
 }
 
+// API Gateway requires that ACM certificates reside in us-east-1.
+provider "aws" {
+  alias = "aws_acm_cert_region_for_edge"
+  region = "us-east-1"
+}
+
 variable "serverless_bucket_name" {
   description = "The bucket into which Serverless will deploy the app."
 }
@@ -52,6 +58,7 @@ EOF
 }
 
 resource "aws_acm_certificate" "app_cert" {
+  provider = aws.aws_acm_cert_region_for_edge
   domain_name = "${var.domain_path}.${var.domain_tld}"
   validation_method = "DNS"
   lifecycle {
@@ -60,6 +67,7 @@ resource "aws_acm_certificate" "app_cert" {
 }
 
 resource "aws_route53_record" "app_cert_validation_cname" {
+  provider = aws.aws_acm_cert_region_for_edge
   name    = "${aws_acm_certificate.app_cert.domain_validation_options.0.resource_record_name}"
   type    = "${aws_acm_certificate.app_cert.domain_validation_options.0.resource_record_type}"
   zone_id = "${data.aws_route53_zone.app_dns_zone.id}"
@@ -68,6 +76,7 @@ resource "aws_route53_record" "app_cert_validation_cname" {
 }
 
 resource "aws_acm_certificate_validation" "app_cert" {
+  provider = aws.aws_acm_cert_region_for_edge
   certificate_arn         = "${aws_acm_certificate.app_cert.arn}"
   validation_record_fqdns = ["${aws_route53_record.app_cert_validation_cname.fqdn}"]
 }
@@ -79,4 +88,8 @@ output "app_account_ak" {
 
 output "app_account_sk" {
   value = "${aws_iam_access_key.app.secret}"
+}
+
+output "certificate_arn" {
+  value = "${aws_acm_certificate.app_cert.arn}"
 }

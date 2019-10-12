@@ -1,6 +1,5 @@
 ---
-plugins:
-  - serverless-domain-manager
+plugins: ${file(./serverless_plugins.yml):${self:provider.stage}}
 
 service:
   name: slack-apis
@@ -10,7 +9,7 @@ frameworkVersion: '>=1.0.0'
 provider:
   name: aws
   runtime: ruby2.5
-  region: ${opt:region, 'us-east-2'}
+  region: ${env:AWS_REGION, 'us-east-2'}
   memorySize: 256
   deploymentBucket:
     name: ${env:SERVERLESS_BUCKET_NAME}
@@ -33,9 +32,9 @@ package:
 
 functions:
   ping:
-    handler: lib/slack-api/health.ping
+    handler: bin/slack-api.ping
     description: Healthiness endpoint for APIs.
-    timeout: 60
+    timeout: 30
     environment:
       GEM_PATH: vendor/bundle
       USE_AWS: true
@@ -46,8 +45,9 @@ functions:
         cors: true
 
 custom:
-  customDomain:
-    domainName: ${env:DOMAIN_TLD}
-    basePath: ${env:DOMAIN_PATH}
-    createRoute53Record: true
-    certificateName: ${env:DOMAIN_PATH}.${env:DOMAIN_TLD}
+  stage: "${opt:stage, self:provider.stage}"
+  production:
+    customDomain:
+      domainName: ${env:DOMAIN_PATH}.${env:DOMAIN_TLD}
+      basePath: ''
+      createRoute53Record: true

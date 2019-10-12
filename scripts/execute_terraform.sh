@@ -15,8 +15,8 @@ terraform $action $* && \
   if [ "$action" == "apply" ]
   then
     mkdir -p ./secrets
-    for output_var in app_account_ak app_account_sk
+    for output_var in app_account_ak app_account_sk certificate_arn
     do
-      terraform output "$output_var" >> "./secrets/$output_var"
+      terraform output "$output_var" > "./secrets/$output_var"
     done
   fi

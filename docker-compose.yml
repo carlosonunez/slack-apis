@@ -1,22 +1,5 @@
 version: '2.2'
 services:
-  serverless:
-    build:
-      dockerfile: serverless.Dockerfile
-      context: .
-    env_file: .env
-    volumes:
-      - $PWD:/app
-    working_dir: /app
-  terraform:
-    image: hashicorp/terraform
-    env_file: .env
-    volumes:
-      - $PWD:/app
-    working_dir: /app
-    entrypoint: 
-      - sh
-      - ./scripts/deploy_infra.sh
   ruby:
     build:
       context: .
@@ -52,18 +35,3 @@ services:
       - --fail-fast
       - --pattern
       - /app/spec/integration/**/*_spec.rb
-  validate-serverless-infra:
-    extends: terraform
-    command:
-      - plan
-      - --input=false
-  deploy-serverless-infra:
-    extends: terraform
-    command:
-      - apply
-      - --auto-approve=true
-      - --input=false
-  deploy-serverless:
-    extends: serverless
-    command:
-      - deploy
