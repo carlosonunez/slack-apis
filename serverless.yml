@@ -31,15 +31,21 @@ package:
     - docker-compose.*
 
 functions:
+  handle_callback:
+    handler: bin/slack-api.handle_callback
+    description: Function that receives Slack OAuth callbacks.
+    timeout: 30
+    environment:
+      GEM_PATH: vendor/bundle
+    events:
+      - http: GET handle_callback
+        cors: true
   ping:
     handler: bin/slack-api.ping
     description: Healthiness endpoint for APIs.
     timeout: 30
     environment:
       GEM_PATH: vendor/bundle
-      USE_AWS: true
-      APP_AWS_ACCESS_KEY_ID: ${file(./secrets/app_account_ak)}
-      APP_AWS_SECRET_ACCESS_KEY: ${file(./secrets/app_account_sk)}
     events:
       - http: GET ping
         cors: true

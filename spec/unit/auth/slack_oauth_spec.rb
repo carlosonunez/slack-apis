@@ -2,6 +2,22 @@ require 'spec_helper'
 require 'ostruct'
 
 describe "Handling fucking Slack OAuth" do
+  context "Slack OAuth callback" do
+    it "Should show me the code", :unit do
+      fake_event = {
+        pathParameters: {
+          code: 'fake-code'
+        }
+      }.to_json
+      expected_response = {
+        statusCode: 200,
+        body: { code: "fake-code" }.to_json
+      }
+      expect(SlackAPI::Auth.handle_callback(event: fake_event))
+        .to eq(expected_response)
+    end
+  end
+
   context "Not authenticated yet" do
     it "Should give the user a prompt to initialize the auth process", :unit do
       expect(SecureRandom).to receive(:hex).and_return('fake-state-id')

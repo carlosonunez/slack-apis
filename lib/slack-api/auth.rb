@@ -6,6 +6,19 @@ require 'securerandom'
 module SlackAPI
   module Auth
 =begin
+    Handle Slack OAuth callbacks.
+=end
+    def self.handle_callback(event:)
+      event_details = JSON.parse(event)
+      @@logger.info "Event: #{event_details}"
+      raise "This request doesn't contain a code" if event_details['pathParameters']['code'].nil?
+      SlackAPI::AWSHelpers::APIGateway.return_200(
+        body: nil,
+        json: { code: event_details['pathParameters']['code'] }
+      )
+    end
+
+=begin
     Slack uses OAuth 2.0. Part of this workflow is providing the server (Slack)
     with a `redirect_uri` that the server can use to send a secret code that the
     client (this) sends back to retrieve a token.
