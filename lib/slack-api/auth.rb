@@ -1,5 +1,6 @@
 require 'aws-sdk-dynamodb'
 require 'slack-api/aws_helpers/api_gateway'
+require 'logger'
 
 module SlackAPI
   module Auth
@@ -20,6 +21,8 @@ module SlackAPI
     In other _other_ words, this is probably terrible.
 =end
     @@temp_code_table_name = 'slack_api_temp_oauth_codes'
+    @@logger = Logger.new(STDOUT)
+    @@logger.level = ENV['LOG_LEVEL'] || Logger::WARN
 
     def self.save_temp_code(state:, code:)
       dynamodb_client = Aws::DynamoDB::Client.new
