@@ -10,8 +10,13 @@ module SlackAPI
           :body => payload.to_json
         }
       end
-      def self.return_200(body:)
-        self.send_response(code: 200, payload: { message: body })
+      def self.return_200(body: nil, json: {})
+        raise "JSON can't be empty" if body.nil? and json.empty?
+        if !json.empty?
+          self.send_response(code: 200, payload: json)
+        else
+          self.send_response(code: 200, payload: { message: body })
+        end
       end
 
       def self.return_500(error_message:)
