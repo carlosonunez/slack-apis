@@ -32,12 +32,27 @@ module SlackAPI
                                        state_id: state)
     end
 
+    private
+    def self.insert_temp_code_into_table(client:, temp_code:, state_id:)
+      @@logger.debug("Inserting new temp code; state: #{state_id}, code: #{temp_code}")
+      client.put_item({
+        table_name: @@temp_code_table_name,
+        item: {
+          "state" => { s: state_id },
+          "code" => { s: temp_code }
+        }
+      })
+    end
+
+    # For more info on key_type and attribute_types,
+    # check out this StackOverflow answer:
+    # https://stackoverflow.com/questions/45581744/how-does-dynamodb-partition-key-works
     def self.create_temp_code_table_if_not_present(client:)
       temp_code_tables_found = client.list_tables.table_names.select { |name|
         name == @@temp_code_table_name
       }
       if temp_code_tables_found.empty?
-        puts "INFO: Creating temp table."
+        @@logger.info("Creating new temp code table.")
         temp_code_table_kvp = {
           state: { key_type: 'HASH', attribute_type: 'S' },
           code: { key_type: 'SORT', attribute_type: 'S' }
