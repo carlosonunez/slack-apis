@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+>&2 echo "INFO: Staging integration environment."
+scripts/deploy && \
+  for stage in integration-setup integration integration-teardown
+  do
+    >&2 echo "INFO: Running stage: $stage"
+    docker-compose run --rm "$stage"
+  done

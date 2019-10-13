@@ -1,5 +1,13 @@
 version: '2.2'
 services:
+  serverless:
+    build:
+      dockerfile: serverless.Dockerfile
+      context: .
+    env_file: .env
+    volumes:
+      - $PWD:/app
+    working_dir: /app
   ruby:
     build:
       context: .
@@ -18,20 +26,30 @@ services:
       LOAD_PATH: "/app/spec/unit;/app/spec;/app/lib"
     command:
       - --tag
-      - "~wip"
+      - unit
       - --fail-fast
       - --format
       - documentation
-      - --pattern
-      - /app/spec/unit/**/*_spec.rb
+  integration-setup:
+    extends: serverless
+    entrypoint: bash
+    command:
+      - -c
+      - ./scripts/integration_setup.sh
+  integration-teardown:
+    extends: serverless
+    command:
+      - remove
+      - --stage
+      - develop
   integration:
     extends: ruby
     entrypoint: rspec
     environment:
       LOAD_PATH: "/app/spec/unit;/app/spec;/app/lib"
+    volumes:
+      - "$PWD/secrets:/secrets"
     command:
       - --tag
-      - "~wip"
+      - integration
       - --fail-fast
-      - --pattern
-      - /app/spec/integration/**/*_spec.rb
