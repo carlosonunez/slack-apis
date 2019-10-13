@@ -1,5 +1,6 @@
 require 'rspec'
 require 'slack-api'
+require 'aws-sdk-dynamodb'
 Dir.glob('/app/spec/helpers/**/*.rb') do |file|
   require_relative file
 end
