@@ -1,6 +1,7 @@
 require 'aws-sdk-dynamodb'
 require 'slack-api/aws_helpers/api_gateway'
 require 'logger'
+require 'securerandom'
 
 module SlackAPI
   module Auth
@@ -32,20 +33,36 @@ module SlackAPI
                                        state_id: state)
     end
 
-    def self.begin_authentication_flow
-      @@logger.info "This still needs to be built!"
-      message = <<-MESSAGE
-You will need to authenticate into Slack first. To do so, click on or copy/paste
-the link below, then go to /finish_authentication once done:
-https://slack.com/oauth/authorize?client_id=fake&\
-scope=users.profile:write,users.write,users.profile:read&\
-redirect_uri=https://example.fake/callback&\
-state=api-key
-      MESSAGE
+    def self.begin_authentication_flow(event:)
+      client_id = ENV['SLACK_APP_CLIENT_ID'] || raise("Please provide your Slack app's client ID.")
+      scopes_csv = ENV['SLACK_APP_CLIENT_SCOPES'] || "users.profile:read,users.profile:write"
+      redirect_uri = "https://#{self.get_endpoint(event)}/handle_callback"
+      state_id = self.generate_state_id
+      slack_authorization_uri = [
+        "https://slack.com/oauth/authorize?client_id=#{client_id}",
+        "scope=#{scopes_csv}",
+        "redirect_uri=#{redirect_uri}",
+        "state=#{state_id}"
+      ].join '&'
+      message = "You will need to authenticate into Slack first. To do so, \
+click on or copy/paste the link below, then go to /finish_authentication \
+once done: #{slack_authorization_uri}"
       SlackAPI::AWSHelpers::APIGateway.return_200(body: message)
     end
 
     private
+    def self.get_endpoint(event)
+      event_details = JSON.parse(event)
+      path = event_details['path'] || raise("Path not found in event.")
+      path_subbed = path.gsub!("/begin_authentication",'')
+      host = event_details['headers']['host'] || raise("Host not found in event.")
+      "#{host}#{path_subbed}"
+    end
+
+    def self.generate_state_id
+      SecureRandom.hex
+    end
+
     def self.insert_temp_code_into_table(client:, temp_code:, state_id:)
       @@logger.debug("Inserting new temp code; state: #{state_id}, code: #{temp_code}")
       client.put_item({
