@@ -2,10 +2,21 @@ require 'net/http'
 
 module Helpers
   module Integration
-    def self.get(endpoint:)
-      raise "Define the DNS_DOMAIN that will host Slack API" if ENV['DNS_DOMAIN'].nil?
-
-      Net::HTTP.get(URI('https://' + ENV['DNS_DOMAIN'] + endpoint))
+    module HTTP
+      def self.get_endpoint
+        seconds_to_wait = ENV['API_GATEWAY_URL_FETCH_TIMEOUT'] || 60
+        puts "Waiting up to #{seconds_to_wait} seconds for endpoint to become available..."
+        attempts = 1
+        while attempts <= seconds_to_wait
+          begin
+            return Helpers::Integration::SharedSecrets.read_secret secret_name: 'endpoint_name'
+          rescue
+            attempts += 1
+            sleep 1
+          end
+        end
+        raise "Secret 'endpoint_name' not found."
+      end
     end
   end
 end
