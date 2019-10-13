@@ -1,4 +1,5 @@
 require 'aws-sdk-dynamodb'
+require 'slack-api/aws_helpers/api_gateway'
 
 module SlackAPI
   module Auth
@@ -18,8 +19,48 @@ module SlackAPI
 
     In other _other_ words, this is probably terrible.
 =end
+    @@temp_code_table_name = 'slack_api_temp_oauth_codes'
+
     def self.save_temp_code(state:, code:)
-      puts "save_temp_code: You ain't done!"
-    end  
+      dynamodb_client = Aws::DynamoDB::Client.new
+      self.create_temp_code_table_if_not_present client: dynamodb_client
+      self.insert_temp_code_into_table(client: dynamodb_client,
+                                       temp_code: code,
+                                       state_id: state)
+    end
+
+    def self.create_temp_code_table_if_not_present(client:)
+      temp_code_tables_found = client.list_tables.table_names.select { |name|
+        name == @@temp_code_table_name
+      }
+      if temp_code_tables_found.empty?
+        puts "INFO: Creating temp table."
+        temp_code_table_kvp = {
+          state: { key_type: 'HASH', attribute_type: 'S' },
+          code: { key_type: 'SORT', attribute_type: 'S' }
+        }
+        table_properties = {key_schema: [], attribute_definitions: []}
+        temp_code_table_kvp.each do |table_key, key_properties|
+          table_properties[:key_schema].push({
+            attribute_name: table_key,
+            key_type: key_properties[:key_type]
+          })
+          table_properties[:attribute_definitions].push({
+            attribute_name: table_key,
+            attribute_type: key_properties[:attribute_type]
+          })
+        end
+        begin
+          client.create_table(table_name: @@temp_code_table_name,
+                              key_schema: table_properties[:key_schema],
+                              attribute_definitions: table_properties[:attribute_definitions],
+                              billing_mode: "PAY_PER_REQUEST")
+        rescue Exception => e
+          SlackAPI::AWSHelpers::APIGateway::return_500(
+            error_message: "Failed to create temp table: #{e}"
+          )
+        end
+      end
+    end
   end
 end
