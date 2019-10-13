@@ -3,13 +3,19 @@ require 'json'
 module SlackAPI
   module AWSHelpers
     class APIGateway
-      def self.return_200(body:, json: nil)
-        raise "JSON should be a hash" if !json.nil? and json.class != Hash
-        default_response = { message: body }
+      def self.send_response(code:, payload:)
+        raise "Payload must be a Hash" if !payload.nil? and payload.class != Hash
         {
-          :statusCode => 200,
-          :body => json || default_response.to_json
+          :statusCode => code,
+          :body => payload.to_json
         }
+      end
+      def self.return_200(body:)
+        self.send_response(code: 200, payload: { message: body })
+      end
+
+      def self.return_500(error_message:)
+        self.send_response(code: 500, payload: { error: error_message })
       end
     end
   end
