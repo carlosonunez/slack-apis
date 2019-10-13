@@ -8,9 +8,6 @@ require 'slack-api'
 require 'json'
 
 # health check. don't need request here...at least not yet.
-def ping(_)
-  {
-    :statusCode => 200,
-    :body => 'pong'
-  }.to_json
+def ping(event: {}, context: {})
+  SlackAPI::Health.ping
 end
