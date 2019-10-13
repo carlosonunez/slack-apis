@@ -6,7 +6,7 @@ module Helpers
       def self.get_stubbed_client
         # TODO: If we start having multiple DynamoDB scenarios, fetch this info from a YAML.
         responses = {
-          put_item: ((OpenStruct.new).attributes = ['code', 'state', 'redirect_uri']),
+          put_item: { consumed_capacity: { table_name: 'fake_table' } },
           list_tables: [ "fake_table" ],
           create_table: ((OpenStruct.new).table_status = "CREATING")
         }
