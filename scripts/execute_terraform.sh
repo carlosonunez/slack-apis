@@ -18,6 +18,6 @@ terraform $action $* && \
     mkdir -p ./secrets
     for output_var in app_account_ak app_account_sk certificate_arn
     do
-      write_secret "$(terraform output "$output_var")"
+      write_secret "$(terraform output "$output_var")" "$output_var"
     done
   fi
