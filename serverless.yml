@@ -37,6 +37,7 @@ functions:
     timeout: 30
     environment:
       GEM_PATH: vendor/bundle
+      SLACK_APP_CLIENT_ID: ${env:SLACK_APP_CLIENT_ID}
     events:
       - http: GET begin_authentication
         cors: true

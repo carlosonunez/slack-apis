@@ -45,6 +45,7 @@ services:
   integration:
     extends: ruby
     entrypoint: rspec
+    env_file: .env
     environment:
       LOAD_PATH: "/app/spec/unit;/app/spec;/app/lib"
     volumes:
