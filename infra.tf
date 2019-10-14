@@ -24,6 +24,11 @@ variable "domain_tld" {
   description = "The domain name to use; this is used for creating HTTPS certificates."
 }
 
+variable "no_certs" {
+  description = "Flag to disable cert provisioning for development deployments."
+  default = "false"
+}
+
 data "aws_route53_zone" "app_dns_zone" {
   name = "${var.domain_tld}."
 }
@@ -58,6 +63,7 @@ EOF
 }
 
 resource "aws_acm_certificate" "app_cert" {
+  count = "${var.no_certs == "true" ? 0 : 1 }"
   provider = aws.aws_acm_cert_region_for_edge
   domain_name = "${var.domain_path}.${var.domain_tld}"
   validation_method = "DNS"
@@ -68,17 +74,19 @@ resource "aws_acm_certificate" "app_cert" {
 
 resource "aws_route53_record" "app_cert_validation_cname" {
   provider = aws.aws_acm_cert_region_for_edge
-  name    = "${aws_acm_certificate.app_cert.domain_validation_options.0.resource_record_name}"
-  type    = "${aws_acm_certificate.app_cert.domain_validation_options.0.resource_record_type}"
+  count   = "${var.no_certs == "true" ? 0 : 1 }"
+  name    = "${aws_acm_certificate.app_cert.0.domain_validation_options.0.resource_record_name}"
+  type    = "${aws_acm_certificate.app_cert.0.domain_validation_options.0.resource_record_type}"
   zone_id = "${data.aws_route53_zone.app_dns_zone.id}"
-  records = ["${aws_acm_certificate.app_cert.domain_validation_options.0.resource_record_value}"]
+  records = ["${aws_acm_certificate.app_cert.0.domain_validation_options.0.resource_record_value}"]
   ttl     = 60
 }
 
 resource "aws_acm_certificate_validation" "app_cert" {
   provider = aws.aws_acm_cert_region_for_edge
-  certificate_arn         = "${aws_acm_certificate.app_cert.arn}"
-  validation_record_fqdns = ["${aws_route53_record.app_cert_validation_cname.fqdn}"]
+  count = "${var.no_certs == "true" ? 0 : 1 }"
+  certificate_arn         = "${aws_acm_certificate.app_cert.0.arn}"
+  validation_record_fqdns = ["${aws_route53_record.app_cert_validation_cname.0.fqdn}"]
 }
 
 
@@ -91,5 +99,5 @@ output "app_account_sk" {
 }
 
 output "certificate_arn" {
-  value = "${aws_acm_certificate.app_cert.arn}"
+  value = "${var.no_certs == "true" ? "none" : aws_acm_certificate.app_cert.0.arn}"
 }
