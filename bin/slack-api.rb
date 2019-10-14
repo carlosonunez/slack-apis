@@ -9,7 +9,7 @@ require 'json'
 
 # Begin the Slack OAuth flow manually.
 def begin_authentication(event: {}, context: {})
-  Slack::Auth.begin_authentication_flow(event)
+  SlackAPI::Auth.begin_authentication_flow(event)
 end
 
 # Slack needs a callback URI to send its code too. This is that callback.
