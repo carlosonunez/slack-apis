@@ -10,6 +10,8 @@ get_api_gateway_endpoint() {
     grep -E 'http.*\/ping' | \
     sed 's/.*\(http.*\)\/ping/\1/' | \
     tr -d $'\r')
+
+  >&2 echo "INFO: Getting API Gateway default API key."
   api_key=$(serverless info --stage develop | \
     grep -E 'default_key:' | \
     sed 's/.*default_key: //' | \
