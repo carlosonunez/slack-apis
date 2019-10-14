@@ -1,8 +1,16 @@
 #!/usr/bin/env bash
+KEEP_INTEGRATION_ENVIRONMENT_UP="${KEEP_INTEGRATION_ENVIRONMENT_UP:-false}"
 >&2 echo "INFO: Staging integration environment."
 scripts/deploy && \
   for stage in integration-setup integration integration-teardown
   do
+    if [ "$KEEP_INTEGRATION_ENVIRONMENT_UP" == "true" ] &&
+      [ "$stage" == "integration-teardown" ]
+    then
+      >&2 echo "INFO: Integration environment will stay up as requested. \
+Tear it down by running: docker-compose run --rm integration-teardown."
+      break
+    fi
     >&2 echo "INFO: Running stage: $stage"
     docker-compose run --rm "$stage"
   done
