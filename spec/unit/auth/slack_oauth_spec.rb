@@ -4,16 +4,16 @@ require 'ostruct'
 describe "Handling fucking Slack OAuth" do
   context "Slack OAuth callback" do
     it "Should show me the code", :unit do
-      fake_event = {
-        pathParameters: {
-          code: 'fake-code'
+      fake_event = JSON.parse({
+        'queryParameters': {
+          'code': 'fake-code'
         }
-      }.to_json
+      }.to_json) # doing this so that we get string keys
       expected_response = {
         statusCode: 200,
         body: { code: "fake-code" }.to_json
       }
-      expect(SlackAPI::Auth.handle_callback(event: fake_event))
+      expect(SlackAPI::Auth.handle_callback(fake_event))
         .to eq(expected_response)
     end
   end

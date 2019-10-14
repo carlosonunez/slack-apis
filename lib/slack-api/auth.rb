@@ -8,13 +8,11 @@ module SlackAPI
 =begin
     Handle Slack OAuth callbacks.
 =end
-    def self.handle_callback(event:)
-      event_details = JSON.parse(event)
-      @@logger.info "Event: #{event_details}"
-      raise "This request doesn't contain a code" if event_details['pathParameters']['code'].nil?
+    def self.handle_callback(event)
+      raise "This request doesn't contain a code" if event['queryParameters']['code'].nil?
       SlackAPI::AWSHelpers::APIGateway.return_200(
         body: nil,
-        json: { code: event_details['pathParameters']['code'] }
+        json: { code: event['queryParameters']['code'] }
       )
     end
 
