@@ -1,5 +1,6 @@
 require 'rspec'
 require 'slack-api'
+require 'httparty'
 require 'aws-sdk-dynamodb'
 Dir.glob('/app/spec/helpers/**/*.rb') do |file|
   require_relative file
@@ -11,9 +12,9 @@ end
 # manually await certain data becoming available.
 RSpec.configure do |config|
   config.before(:all, :integration => true) do
-    @api_gateway_url = ENV['API_GATEWAY_URL'] || Helpers::Integration::HTTP.get_endpoint
+    $api_gateway_url = ENV['API_GATEWAY_URL'] || Helpers::Integration::HTTP.get_endpoint
     raise "Please define API_GATEWAY_URL as an environment variable or \
 run 'docker-compose run --rm integration-setup'" \
-      if @api_gateway_url.nil? or @api_gateway_url.empty?
+      if $api_gateway_url.nil? or $api_gateway_url.empty?
   end
 end
