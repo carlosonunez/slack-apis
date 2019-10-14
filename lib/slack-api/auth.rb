@@ -62,6 +62,7 @@ once done: #{slack_authorization_uri}"
 
     private
     def self.get_endpoint(event)
+      # TODO: Fix TypeError Hash into String errror from API Gateway.
       path = event['path'] || raise("Path not found in event.")
       path_subbed = path.gsub!("/begin_authentication",'')
       host = event['headers']['host'] || raise("Host not found in event.")
