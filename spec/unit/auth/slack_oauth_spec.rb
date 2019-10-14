@@ -5,7 +5,7 @@ describe "Handling fucking Slack OAuth" do
   context "Slack OAuth callback" do
     it "Should show me the code", :unit do
       fake_event = JSON.parse({
-        'queryParameters': {
+        'queryStringParameters': {
           'code': 'fake-code'
         }
       }.to_json) # doing this so that we get string keys
@@ -39,7 +39,7 @@ state=fake-state-id"
         statusCode: 200,
         body: { message: expected_message }.to_json
       }
-      expect(SlackAPI::Auth::begin_authentication_flow(event: fake_event))
+      expect(SlackAPI::Auth::begin_authentication_flow(fake_event))
         .to eq expected_response
     end
   end

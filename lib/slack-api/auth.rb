@@ -9,10 +9,10 @@ module SlackAPI
     Handle Slack OAuth callbacks.
 =end
     def self.handle_callback(event)
-      raise "This request doesn't contain a code" if event['queryParameters']['code'].nil?
+      raise "This request doesn't contain a code" if event['queryStringParameters']['code'].nil?
       SlackAPI::AWSHelpers::APIGateway.return_200(
         body: nil,
-        json: { code: event['queryParameters']['code'] }
+        json: { code: event['queryStringParameters']['code'] }
       )
     end
 
@@ -44,7 +44,7 @@ module SlackAPI
                                        state_id: state)
     end
 
-    def self.begin_authentication_flow(event:)
+    def self.begin_authentication_flow(event)
       client_id = ENV['SLACK_APP_CLIENT_ID'] || raise("Please provide your Slack app's client ID.")
       scopes_csv = ENV['SLACK_APP_CLIENT_SCOPES'] || "users.profile:read,users.profile:write"
       redirect_uri = "https://#{self.get_endpoint(event)}/handle_callback"
