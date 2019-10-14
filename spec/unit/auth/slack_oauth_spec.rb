@@ -21,13 +21,12 @@ describe "Handling fucking Slack OAuth" do
   context "Not authenticated yet" do
     it "Should give the user a prompt to initialize the auth process", :unit do
       expect(SecureRandom).to receive(:hex).and_return('fake-state-id')
-      fake_event = {
+      fake_event = JSON.parse({
         path: '/develop/begin_authentication',
         headers: {
           host: 'example.fake'
         }
-      }.to_json
-      ENV['SLACK_APP_CLIENT_ID'] = 'fake'
+      }.to_json)
       expected_message = "You will need to authenticate into Slack first. \
 To do so, click on or copy/paste \
 the link below, then go to /finish_authentication once done: \
@@ -39,7 +38,8 @@ state=fake-state-id"
         statusCode: 200,
         body: { message: expected_message }.to_json
       }
-      expect(SlackAPI::Auth::begin_authentication_flow(fake_event))
+      expect(SlackAPI::Auth::begin_authentication_flow(fake_event,
+                                                      client_id: 'fake'))
         .to eq expected_response
     end
   end

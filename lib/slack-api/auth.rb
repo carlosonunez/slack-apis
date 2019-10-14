@@ -44,8 +44,7 @@ module SlackAPI
                                        state_id: state)
     end
 
-    def self.begin_authentication_flow(event)
-      client_id = ENV['SLACK_APP_CLIENT_ID'] || raise("Please provide your Slack app's client ID.")
+    def self.begin_authentication_flow(event, client_id:)
       scopes_csv = ENV['SLACK_APP_CLIENT_SCOPES'] || "users.profile:read,users.profile:write"
       redirect_uri = "https://#{self.get_endpoint(event)}/handle_callback"
       state_id = self.generate_state_id
@@ -63,10 +62,9 @@ once done: #{slack_authorization_uri}"
 
     private
     def self.get_endpoint(event)
-      event_details = JSON.parse(event)
-      path = event_details['path'] || raise("Path not found in event.")
+      path = event['path'] || raise("Path not found in event.")
       path_subbed = path.gsub!("/begin_authentication",'')
-      host = event_details['headers']['host'] || raise("Host not found in event.")
+      host = event['headers']['host'] || raise("Host not found in event.")
       "#{host}#{path_subbed}"
     end
 
