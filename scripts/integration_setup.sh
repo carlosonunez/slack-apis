@@ -10,13 +10,25 @@ get_api_gateway_endpoint() {
     grep -E 'http.*\/ping' | \
     sed 's/.*\(http.*\)\/ping/\1/' | \
     tr -d $'\r')
+  api_key=$(serverless info --stage develop | \
+    grep -E 'default_key:' | \
+    sed 's/.*default_key: //' | \
+    tr -d ' '
+  )
   if test -z "$endpoint_url"
   then
     >&2 echo "ERROR: We couldn't find a deployed endpoint."
     exit 1
   fi
+  if test -z "$api_key"
+  then
+    >&2 echo "ERROR: We couldn't find an API key."
+    exit 1
+  fi
   export API_GATEWAY_URL="$endpoint_url"
+  export API_KEY="$api_key"
   write_secret "$endpoint_url" "endpoint_name"
+  write_secret "$api_key" "api_key"
 }
 
 get_api_gateway_endpoint
