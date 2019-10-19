@@ -15,10 +15,7 @@ describe "Slack OAuth" do
 
   context "Slack OAuth - Step 1" do
     it "Should give me a URL to continue authenticating", :integration do
-      uri = [
-        $api_gateway_url,
-        "begin_authentication"
-      ].join '/'
+      uri = "#{$api_gateway_url}/auth"
       headers = {
         'x-api-key': ENV["API_KEY"]
       }

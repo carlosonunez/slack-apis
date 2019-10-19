@@ -3,6 +3,7 @@
 alias unit="scripts/unit"
 alias integration="scripts/integration"
 alias integration_no_destroy="KEEP_INTEGRATION_ENVIRONMENT_UP=true scripts/integration"
+alias integration_test="docker-compose run --rm integration"
 alias remove_functions="docker-compose run --rm serverless remove --stage develop"
 alias remove_infra="docker-compose -f docker-compose.deploy.yml run --rm terraform destroy"
 alias deploy="scripts/deploy"

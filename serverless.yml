@@ -42,7 +42,7 @@ functions:
       - http: GET auth
         cors: true
         private: true
-  handle_callback:
+  callback:
     handler: bin/slack-api.handle_callback
     description: Function that receives Slack OAuth callbacks.
     timeout: 30
