@@ -31,7 +31,7 @@ package:
     - docker-compose.*
 
 functions:
-  begin_authentication:
+  auth:
     handler: bin/slack-api.begin_authentication
     description: Function that directs the user to start the Slack OAuth flow.
     timeout: 30
@@ -39,7 +39,7 @@ functions:
       GEM_PATH: vendor/bundle
       SLACK_APP_CLIENT_ID: ${env:SLACK_APP_CLIENT_ID}
     events:
-      - http: GET begin_authentication
+      - http: GET auth
         cors: true
         private: true
   handle_callback:
@@ -49,7 +49,7 @@ functions:
     environment:
       GEM_PATH: vendor/bundle
     events:
-      - http: GET handle_callback
+      - http: GET callback
         cors: true
   ping:
     handler: bin/slack-api.ping
