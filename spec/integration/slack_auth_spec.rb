@@ -17,7 +17,7 @@ describe "Slack OAuth" do
     it "Should give me a URL to continue authenticating", :integration do
       uri = "#{$api_gateway_url}/auth"
       headers = {
-        'x-api-key': ENV["API_KEY"]
+        'x-api-key': $test_api_key
       }
       response = HTTParty.get(uri, headers)
       expected_message = "You will need to authenticate into Slack first. \
