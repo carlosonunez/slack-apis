@@ -16,5 +16,9 @@ RSpec.configure do |config|
     raise "Please define API_GATEWAY_URL as an environment variable or \
 run 'docker-compose run --rm integration-setup'" \
       if $api_gateway_url.nil? or $api_gateway_url.empty?
+
+    $test_api_key =
+      Helpers::Integration::SharedSecrets.read_secret(secret_name: 'api_key') ||
+        raise('Please create the "api_key" secret.')
   end
 end
