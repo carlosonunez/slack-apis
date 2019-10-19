@@ -29,6 +29,9 @@ package:
     - secrets/**
     - infra/**
     - docker-compose.*
+    - .terraform/**
+    - spec/**
+    - .env*
 
 functions:
   auth:
