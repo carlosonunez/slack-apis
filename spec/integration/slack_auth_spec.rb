@@ -15,7 +15,7 @@ describe "Slack OAuth" do
 
   context "Slack OAuth - Step 1" do
     it "Should give me a URL to continue authenticating", :integration do
-      uri = "#{$api_gateway_url}/auth"
+      uri = "#{$api_gateway_url}/auth?workspace=#{ENV['SLACK_WORKSPACE_NAME']}"
       headers = {
         'x-api-key': $test_api_key
       }
@@ -23,7 +23,8 @@ describe "Slack OAuth" do
       expected_message_re = %r{You will need to authenticate into Slack first. \
 To do so, click on or copy/paste the link below, then go to \
 /finish_authentication once done: \
-https://slack.com/oauth/authorize\?client_id=#{ENV['SLACK_APP_CLIENT_ID']}&\
+https://#{ENV['SLACK_WORKSPACE_NAME']}.slack.com\
+/oauth/authorize\?client_id=#{ENV['SLACK_APP_CLIENT_ID']}&\
 scope=users.profile:read,users.profile:write&\
 redirect_uri=https://x9gi2w2lal.execute-api.us-east-2.amazonaws.com/\
 develop/callback&state=[a-zA-Z0-9]{32}}

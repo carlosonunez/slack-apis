@@ -47,9 +47,15 @@ module SlackAPI
     def self.begin_authentication_flow(event, client_id:)
       scopes_csv = ENV['SLACK_APP_CLIENT_SCOPES'] || "users.profile:read,users.profile:write"
       redirect_uri = "https://#{self.get_endpoint(event)}/callback"
+      workspace = self.get_workspace(event)
       state_id = self.generate_state_id
+      if workspace.nil?
+        workspace_url = "slack.com"
+      else
+        workspace_url = "#{workspace}.slack.com"
+      end
       slack_authorization_uri = [
-        "https://slack.com/oauth/authorize?client_id=#{client_id}",
+        "https://#{workspace_url}/oauth/authorize?client_id=#{client_id}",
         "scope=#{scopes_csv}",
         "redirect_uri=#{redirect_uri}",
         "state=#{state_id}"
@@ -67,6 +73,14 @@ once done: #{slack_authorization_uri}"
       path_subbed = path.gsub!("/auth",'')
       host = event['headers']['Host'] || raise("Host not found in event.")
       "#{host}#{path_subbed}"
+    end
+
+    def self.get_workspace(event)
+      begin
+        event['queryStringParameters']['workspace']
+      rescue
+        return nil
+      end
     end
 
     def self.generate_state_id
