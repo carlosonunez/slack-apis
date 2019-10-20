@@ -3,15 +3,24 @@ require 'ostruct'
 
 describe "Handling fucking Slack OAuth" do
   context "Slack OAuth callback" do
-    it "Should show me the code", :unit do
+    it "Should show me the next place to go", :unit do
       fake_event = JSON.parse({
-        'queryStringParameters': {
-          'code': 'fake-code'
+        queryStringParameters: {
+          code: 'fake-code',
+          state: 'fake-state'
+        },
+        requestContext: {
+          path: '/develop/callback'
+        },
+        headers: {
+          Host: 'example.fake'
         }
       }.to_json) # doing this so that we get string keys
       expected_response = {
         statusCode: 200,
-        body: { code: "fake-code" }.to_json
+        body: {
+          go_here: "https://example.fake/develop/finish_auth?code=fake-code&state=fake-state"
+        }.to_json
       }
       expect(SlackAPI::Auth.handle_callback(fake_event))
         .to eq(expected_response)
@@ -48,7 +57,7 @@ describe "Handling fucking Slack OAuth" do
       }.to_json)
       expected_message = "You will need to authenticate into Slack first. \
 To do so, click on or copy/paste \
-the link below, then go to /finish_authentication once done: \
+the link below, then go to /finish_auth with the code given once done: \
 https://fake.slack.com/oauth/authorize?client_id=fake&\
 scope=users.profile:read,users.profile:write&\
 redirect_uri=https://example.fake/develop/callback&\
@@ -74,7 +83,7 @@ state=fake-state-id"
       }.to_json)
       expected_message = "You will need to authenticate into Slack first. \
 To do so, click on or copy/paste \
-the link below, then go to /finish_authentication once done: \
+the link below, then go to /finish_auth with the code given once done: \
 https://slack.com/oauth/authorize?client_id=fake&\
 scope=users.profile:read,users.profile:write&\
 redirect_uri=https://example.fake/develop/callback&\

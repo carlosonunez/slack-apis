@@ -9,7 +9,7 @@ describe "Slack OAuth" do
     response = HTTParty.get uri
     expect(response.code.to_i).to eq 200
     expect(response.body).to eq({
-      code: 'fake-code'
+      go_here: "#{$api_gateway_url}/finish_auth?code=fake-code&state=fake-state-id"
     }.to_json)
   end
 
@@ -21,13 +21,11 @@ describe "Slack OAuth" do
       }
       response = HTTParty.get(uri, headers)
       expected_message_re = %r{You will need to authenticate into Slack first. \
-To do so, click on or copy/paste the link below, then go to \
-/finish_authentication once done: \
+To do so, click on or copy/paste the link below, then go to /finish_auth with the code given once done: \
 https://#{ENV['SLACK_WORKSPACE_NAME']}.slack.com\
 /oauth/authorize\?client_id=#{ENV['SLACK_APP_CLIENT_ID']}&\
 scope=users.profile:read,users.profile:write&\
-redirect_uri=https://x9gi2w2lal.execute-api.us-east-2.amazonaws.com/\
-develop/callback&state=[a-zA-Z0-9]{32}}
+redirect_uri=#{$api_gateway_url}/callback&state=[a-zA-Z0-9]{32}}
       expect(response.code.to_i).to eq 200
       expect(JSON.parse(response.body)['message']).to match expected_message_re
     end

@@ -11,11 +11,15 @@ module SlackAPI
     def self.handle_callback(event)
       parameters = event['queryStringParameters']
       raise "Parameters missing a code or error" \
-        if parameters['code'].nil? and parameters['error'].nil?
-      if !parameters['code'].nil?
+        if (parameters['code'].nil? and parameters['state'].nil?) \
+          and parameters['error'].nil?
+      if (!parameters['code'].nil? and !parameters['state'].nil?)
+        next_url = "https://" + \
+          self.get_endpoint(event, path_to_remove: '/callback') + \
+          "/finish_auth?code=#{parameters['code']}&state=#{parameters['state']}"
         SlackAPI::AWSHelpers::APIGateway.return_200(
           body: nil,
-          json: { code: event['queryStringParameters']['code'] }
+          json: { go_here: next_url }
         )
       elsif !parameters['error'].nil?
         SlackAPI::AWSHelpers::APIGateway.return_403(
@@ -69,16 +73,16 @@ module SlackAPI
         "state=#{state_id}"
       ].join '&'
       message = "You will need to authenticate into Slack first. To do so, \
-click on or copy/paste the link below, then go to /finish_authentication \
+click on or copy/paste the link below, then go to /finish_auth with the code given \
 once done: #{slack_authorization_uri}"
       SlackAPI::AWSHelpers::APIGateway.return_200(body: message)
     end
 
     private
-    def self.get_endpoint(event)
+    def self.get_endpoint(event, path_to_remove: '/auth')
       # TODO: Fix TypeError Hash into String errror from API Gateway.
       path = event['requestContext']['path'] || raise("Path not found in event.")
-      path_subbed = path.gsub!("/auth",'')
+      path_subbed = path.gsub!(path_to_remove,'')
       host = event['headers']['Host'] || raise("Host not found in event.")
       "#{host}#{path_subbed}"
     end
