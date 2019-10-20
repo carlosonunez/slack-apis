@@ -16,6 +16,20 @@ describe "Handling fucking Slack OAuth" do
       expect(SlackAPI::Auth.handle_callback(fake_event))
         .to eq(expected_response)
     end
+
+    it "Should show me an error when a user denies the request", :unit do
+      fake_event = JSON.parse({
+        'queryStringParameters': {
+          'error': 'access-denied'
+        }
+      }.to_json) # doing this so that we get string keys
+      expected_response = {
+        statusCode: 403,
+        body: { message: 'User denied this app access to their Slack account.' }.to_json
+      }
+      expect(SlackAPI::Auth.handle_callback(fake_event))
+        .to eq(expected_response)
+    end
   end
 
   context "Not authenticated yet" do

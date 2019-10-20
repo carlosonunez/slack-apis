@@ -9,11 +9,19 @@ module SlackAPI
     Handle Slack OAuth callbacks.
 =end
     def self.handle_callback(event)
-      raise "This request doesn't contain a code" if event['queryStringParameters']['code'].nil?
-      SlackAPI::AWSHelpers::APIGateway.return_200(
-        body: nil,
-        json: { code: event['queryStringParameters']['code'] }
-      )
+      parameters = event['queryStringParameters']
+      raise "Parameters missing a code or error" \
+        if parameters['code'].nil? and parameters['error'].nil?
+      if !parameters['code'].nil?
+        SlackAPI::AWSHelpers::APIGateway.return_200(
+          body: nil,
+          json: { code: event['queryStringParameters']['code'] }
+        )
+      elsif !parameters['error'].nil?
+        SlackAPI::AWSHelpers::APIGateway.return_403(
+          body: 'User denied this app access to their Slack account.'
+        )
+      end
     end
 
 =begin
