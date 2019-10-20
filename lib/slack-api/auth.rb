@@ -46,7 +46,7 @@ module SlackAPI
 
     def self.begin_authentication_flow(event, client_id:)
       scopes_csv = ENV['SLACK_APP_CLIENT_SCOPES'] || "users.profile:read,users.profile:write"
-      redirect_uri = "https://#{self.get_endpoint(event)}/handle_callback"
+      redirect_uri = "https://#{self.get_endpoint(event)}/callback"
       state_id = self.generate_state_id
       slack_authorization_uri = [
         "https://slack.com/oauth/authorize?client_id=#{client_id}",
@@ -63,9 +63,9 @@ once done: #{slack_authorization_uri}"
     private
     def self.get_endpoint(event)
       # TODO: Fix TypeError Hash into String errror from API Gateway.
-      path = event['path'] || raise("Path not found in event.")
-      path_subbed = path.gsub!("/begin_authentication",'')
-      host = event['headers']['host'] || raise("Host not found in event.")
+      path = event['requestContext']['path'] || raise("Path not found in event.")
+      path_subbed = path.gsub!("/auth",'')
+      host = event['headers']['Host'] || raise("Host not found in event.")
       "#{host}#{path_subbed}"
     end
 
