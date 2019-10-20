@@ -1,5 +1,6 @@
 require 'aws-sdk-dynamodb'
 require 'slack-api/aws_helpers/api_gateway'
+require 'slack-api/slack'
 require 'logger'
 require 'securerandom'
 
@@ -29,6 +30,40 @@ module SlackAPI
     end
 
 =begin
+    Finish the authentication flow when given a code and state. 
+=end
+    def self.finish_auth(event:)
+      raise "Access key not in event" if event['Headers']['x-api-key'].nil?
+      raise "Code not in request" if event['queryStringParameters']['code'].nil?
+      raise "State not in request" if event['queryStringParameters']['state'].nil?
+      access_key = event['Headers']['x-api-key']
+      code = event['queryStringParameters']['code']
+      state = event['queryStringParameters']['state']
+      callback_url = [
+        "https://#{self.get_endpoint(event, path_to_remove:'/finish_auth')}",
+        "callback?code=#{code}&state=#{state}"
+      ].join('/')
+
+      token_request = SlackAPI::Slack::OAuth.access(client_id: ENV['SLACK_APP_CLIENT_ID'],
+                                                    client_secret: ENV['SLACK_APP_CLIENT_SECRET'],
+                                                    redirect_uri: callback_url,
+                                                    code: code)
+      if !token_request[:ok]
+        SlackAPI::AWS::APIGateway.return_403(
+          body: "Token request failed: #{token_request[:error]}"
+        )
+        return
+      end
+      token = token_request[:access_token]
+      self.save_oauth_token!(access_key: access_key,
+                            token: token)
+      SlackAPI::AWSHelpers::APIGateway.return_200(
+        body: nil,
+        json: { status: 'ok' }
+      )
+    end
+
+=begin
     Slack uses OAuth 2.0. Part of this workflow is providing the server (Slack)
     with a `redirect_uri` that the server can use to send a secret code that the
     client (this) sends back to retrieve a token.
@@ -44,16 +79,16 @@ module SlackAPI
 
     In other _other_ words, this is probably terrible.
 =end
-    @@temp_code_table_name = 'slack_api_temp_oauth_codes'
+    @@oauth_token_table_name = 'slack_api_tokens'
     @@logger = Logger.new(STDOUT)
     @@logger.level = ENV['LOG_LEVEL'] || Logger::WARN
 
-    def self.save_temp_code(state:, code:)
+    def self.save_oauth_token!(access_key:, token:)
       dynamodb_client = Aws::DynamoDB::Client.new
-      self.create_temp_code_table_if_not_present client: dynamodb_client
-      self.insert_temp_code_into_table(client: dynamodb_client,
-                                       temp_code: code,
-                                       state_id: state)
+      self.create_oauth_token_table_if_not_present client: dynamodb_client
+      self.insert_oauth_token_into_table(client: dynamodb_client,
+                                         access_key: access_key,
+                                         token: token)
     end
 
     def self.begin_authentication_flow(event, client_id:)
@@ -99,13 +134,13 @@ once done: #{slack_authorization_uri}"
       SecureRandom.hex
     end
 
-    def self.insert_temp_code_into_table(client:, temp_code:, state_id:)
-      @@logger.debug("Inserting new temp code; state: #{state_id}, code: #{temp_code}")
+    def self.insert_oauth_token_into_table(client:, access_key:, token:)
+      @@logger.debug("Inserting new OAuth token")
       client.put_item({
-        table_name: @@temp_code_table_name,
+        table_name: @@oauth_token_table_name,
         item: {
-          "state" => { s: state_id },
-          "code" => { s: temp_code }
+          "access_key" => { s: access_key },
+          "token" => { s: token }
         }
       })
     end
@@ -113,18 +148,18 @@ once done: #{slack_authorization_uri}"
     # For more info on key_type and attribute_types,
     # check out this StackOverflow answer:
     # https://stackoverflow.com/questions/45581744/how-does-dynamodb-partition-key-works
-    def self.create_temp_code_table_if_not_present(client:)
-      temp_code_tables_found = client.list_tables.table_names.select { |name|
-        name == @@temp_code_table_name
+    def self.create_oauth_token_table_if_not_present(client:)
+      oauth_token_tables_found = client.list_tables.table_names.select { |name|
+        name == @@oauth_token_table_name
       }
-      if temp_code_tables_found.empty?
+      if oauth_token_tables_found.empty?
         @@logger.info("Creating new temp code table.")
-        temp_code_table_kvp = {
-          state: { key_type: 'HASH', attribute_type: 'S' },
-          code: { key_type: 'SORT', attribute_type: 'S' }
+        oauth_token_table_kvp = {
+          access_key: { key_type: 'HASH', attribute_type: 'S' },
+          token: { key_type: 'SORT', attribute_type: 'S' }
         }
         table_properties = {key_schema: [], attribute_definitions: []}
-        temp_code_table_kvp.each do |table_key, key_properties|
+        oauth_token_table_kvp.each do |table_key, key_properties|
           table_properties[:key_schema].push({
             attribute_name: table_key,
             key_type: key_properties[:key_type]
@@ -135,7 +170,7 @@ once done: #{slack_authorization_uri}"
           })
         end
         begin
-          client.create_table(table_name: @@temp_code_table_name,
+          client.create_table(table_name: @@oauth_token_table_name,
                               key_schema: table_properties[:key_schema],
                               attribute_definitions: table_properties[:attribute_definitions],
                               billing_mode: "PAY_PER_REQUEST")
