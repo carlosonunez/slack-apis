@@ -20,15 +20,15 @@ describe "Slack OAuth" do
         'x-api-key': $test_api_key
       }
       response = HTTParty.get(uri, headers)
-      expected_message = "You will need to authenticate into Slack first. \
-To do so, click on or copy/paste \
-the link below, then go to /finish_authentication once done: \
-https://slack.com/oauth/authorize?client_id=#{ENV['SLACK_APP_CLIENT_ID']}&\
+      expected_message_re = %r{You will need to authenticate into Slack first. \
+To do so, click on or copy/paste the link below, then go to \
+/finish_authentication once done: \
+https://slack.com/oauth/authorize\?client_id=#{ENV['SLACK_APP_CLIENT_ID']}&\
 scope=users.profile:read,users.profile:write&\
-redirect_uri=https://#{$api_gateway}/develop/handle_callback&\
-state=fake-state-id"
+redirect_uri=https://x9gi2w2lal.execute-api.us-east-2.amazonaws.com/\
+develop/callback&state=[a-zA-Z0-9]{32}}
       expect(response.code.to_i).to eq 200
-      expect(response.body).to eq(expected_message)
+      expect(JSON.parse(response.body)['message']).to match expected_message_re
     end
   end
 end
