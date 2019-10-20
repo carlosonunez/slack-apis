@@ -19,8 +19,8 @@ module SlackAPI
         end
       end
 
-      def self.return_500(error_message:)
-        self.send_response(code: 500, payload: { error: error_message })
+      def self.return_403(body:)
+        self.send_response(code: 403, payload: { message: body })
       end
     end
   end

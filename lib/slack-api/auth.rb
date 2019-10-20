@@ -136,9 +136,7 @@ once done: #{slack_authorization_uri}"
                               attribute_definitions: table_properties[:attribute_definitions],
                               billing_mode: "PAY_PER_REQUEST")
         rescue Exception => e
-          SlackAPI::AWSHelpers::APIGateway::return_500(
-            error_message: "Failed to create temp table: #{e}"
-          )
+          raise "Failed to create temp table: #{e}"
         end
       end
     end
