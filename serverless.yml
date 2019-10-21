@@ -63,8 +63,22 @@ functions:
     environment:
       GEM_PATH: vendor/bundle
     events:
-      - http: GET ping
-        cors: true
+      - http:
+          path: ping
+          method: get
+  finish_auth:
+    handler: bin/slack-api.finish_auth
+    description: Finishes a Slack OAuth flow.
+    timeout: 30
+    environment:
+      GEM_PATH: vendor/bundle
+      SLACK_APP_CLIENT_ID: ${env:SLACK_APP_CLIENT_ID}
+      SLACK_APP_CLIENT_SECRET: ${env:SLACK_APP_CLIENT_SECRET}
+    events:
+      - http:
+          path: finish_auth
+          method: get
+          private: true
 
 custom:
   stage: "${opt:stage, self:provider.stage}"

@@ -16,7 +16,7 @@ module SlackAPI
           and parameters['error'].nil?
       if (!parameters['code'].nil? and !parameters['state'].nil?)
         next_url = "https://" + \
-          self.get_endpoint(event, path_to_remove: '/callback') + \
+          SlackAPI::AWSHelpers::APIGateway.get_endpoint(event, path_to_remove: '/callback') + \
           "/finish_auth?code=#{parameters['code']}&state=#{parameters['state']}"
         SlackAPI::AWSHelpers::APIGateway.return_200(
           body: nil,
@@ -32,34 +32,29 @@ module SlackAPI
 =begin
     Finish the authentication flow when given a code and state. 
 =end
-    def self.finish_auth(event:)
-      raise "Access key not in event" if event['Headers']['x-api-key'].nil?
+    def self.finish_auth(event)
       raise "Code not in request" if event['queryStringParameters']['code'].nil?
-      raise "State not in request" if event['queryStringParameters']['state'].nil?
-      access_key = event['Headers']['x-api-key']
       code = event['queryStringParameters']['code']
-      state = event['queryStringParameters']['state']
       callback_url = [
-        "https://#{self.get_endpoint(event, path_to_remove:'/finish_auth')}",
-        "callback?code=#{code}&state=#{state}"
+        "https://#{SlackAPI::AWSHelpers::APIGateway.get_endpoint(event, path_to_remove:'/finish_auth')}",
+        "callback"
       ].join('/')
 
-      token_request = SlackAPI::Slack::OAuth.access(client_id: ENV['SLACK_APP_CLIENT_ID'],
+      token_response = SlackAPI::Slack::OAuth.access(client_id: ENV['SLACK_APP_CLIENT_ID'],
                                                     client_secret: ENV['SLACK_APP_CLIENT_SECRET'],
                                                     redirect_uri: callback_url,
                                                     code: code)
-      if !token_request[:ok]
-        SlackAPI::AWS::APIGateway.return_403(
-          body: "Token request failed: #{token_request[:error]}"
+      raise "Unable to get Slack token" if token_response.body.nil?
+      token_response_json = JSON.parse(token_response.body)
+      if !token_response_json['ok'].nil? and !token_response_json['ok']
+        return SlackAPI::AWSHelpers::APIGateway.return_403(
+          body: "Token request failed: #{token_response_json['error']}"
         )
-        return
       end
-      token = token_request[:access_token]
-      self.save_oauth_token!(access_key: access_key,
-                            token: token)
+      token = token_response_json['access_token']
       SlackAPI::AWSHelpers::APIGateway.return_200(
         body: nil,
-        json: { status: 'ok' }
+        json: { status: 'ok', token: token }
       )
     end
 
@@ -93,7 +88,7 @@ module SlackAPI
 
     def self.begin_authentication_flow(event, client_id:)
       scopes_csv = ENV['SLACK_APP_CLIENT_SCOPES'] || "users.profile:read,users.profile:write"
-      redirect_uri = "https://#{self.get_endpoint(event)}/callback"
+      redirect_uri = "https://#{SlackAPI::AWSHelpers::APIGateway.get_endpoint(event)}/callback"
       workspace = self.get_workspace(event)
       state_id = self.generate_state_id
       if workspace.nil?
@@ -114,14 +109,6 @@ once done: #{slack_authorization_uri}"
     end
 
     private
-    def self.get_endpoint(event, path_to_remove: '/auth')
-      # TODO: Fix TypeError Hash into String errror from API Gateway.
-      path = event['requestContext']['path'] || raise("Path not found in event.")
-      path_subbed = path.gsub!(path_to_remove,'')
-      host = event['headers']['Host'] || raise("Host not found in event.")
-      "#{host}#{path_subbed}"
-    end
-
     def self.get_workspace(event)
       begin
         event['queryStringParameters']['workspace']
