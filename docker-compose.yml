@@ -16,6 +16,8 @@ services:
   ruby:
     build:
       context: .
+      args:
+        ENVIRONMENT: test
     env_file: .env
     volumes:
       - $PWD:/app
