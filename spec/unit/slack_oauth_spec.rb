@@ -100,31 +100,28 @@ state=fake-state-id"
 
   context 'Finishing authentication' do
     it "Should give me a token once I finish auth", :unit do
-      responses = {
-        put_item: { consumed_capacity: { table_name: 'slack_api_tokens' } },
-        list_tables: { table_names: [ "slack_api_tokens" ] },
-        create_table: { table_description: { item_count: 0 } },
-        get_item: { item: { "Token" => { s: "fake-token" } } }
-      }
       fake_event = JSON.parse({
+        requestContext: {
+          path: '/develop/final_auth'
+        },
         queryStringParameters: {
-          workspace: 'fake'
+          code: 'fake-code',
+          state: 'fake-state'
         },
         headers: {
-          'x-api-key': 'fake-key'
+          Host: 'example.host'
         }
       }.to_json)
-      slack_response = {
+      slack_response_json = {
         access_token: 'fake-token',
         scope: 'read'
-      }
-      stubbed_client = Helpers::Aws.get_stubbed_client(aws_service: 'DynamoDB',
-                                                      mocked_responses: responses)
-      expect(Aws::DynamoDB::Client).to receive(:new).and_return(stubbed_client)
-      expect(SlackAPI::Slack::OAuth).to receive(:access).and_return(slack_response)
-      expected_response = {
-        status: 'ok'
       }.to_json
+      slack_response = instance_double(HTTParty::Response, body: slack_response_json)
+      allow(SlackAPI::Slack::OAuth).to receive(:get).and_return slack_response
+      expected_response = {
+        statusCode: 200,
+        body: { status: 'ok', token: 'fake-token' }.to_json
+      }
       expect(SlackAPI::Auth::finish_auth(fake_event)).to eq expected_response
     end
   end
