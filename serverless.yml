@@ -42,9 +42,10 @@ functions:
       GEM_PATH: vendor/bundle
       SLACK_APP_CLIENT_ID: ${env:SLACK_APP_CLIENT_ID}
     events:
-      - http: GET auth
-        cors: true
-        private: true
+      - http:
+          path: auth
+          method: get
+          private: true
   callback:
     handler: bin/slack-api.handle_callback
     description: Function that receives Slack OAuth callbacks.
@@ -52,8 +53,9 @@ functions:
     environment:
       GEM_PATH: vendor/bundle
     events:
-      - http: GET callback
-        cors: true
+      - http:
+          path: callback
+          method: get
   ping:
     handler: bin/slack-api.ping
     description: Healthiness endpoint for APIs.
