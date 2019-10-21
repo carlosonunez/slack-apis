@@ -9,6 +9,15 @@ services:
     command:
       - -c
       - cp -R /usr/local/bundle /vendor
+  vendor-dependencies-from-scratch:
+    build:
+      context: .
+    entrypoint: sh
+    volumes:
+      - "$PWD/vendor:/vendor"
+    command:
+      - -c
+      - "bundle install && cp -R /usr/local/bundle /vendor"
   serverless:
     build:
       dockerfile: serverless.Dockerfile
