@@ -117,7 +117,7 @@ state=fake-state-id"
         scope: 'read'
       }.to_json
       slack_response = instance_double(HTTParty::Response, body: slack_response_json)
-      allow(SlackAPI::Slack::OAuth).to receive(:get).and_return slack_response
+      allow(SlackAPI::Slack::API).to receive(:get).and_return slack_response
       expected_response = {
         statusCode: 200,
         body: { status: 'ok', token: 'fake-token' }.to_json
