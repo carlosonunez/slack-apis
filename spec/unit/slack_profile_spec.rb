@@ -4,7 +4,7 @@ describe "Slack Profiles" do
   # We require a specific user ID due to the limited scopes this external
   # bot will have and it likely needing to be used against Slack workspaces
   # that are subject to GDPR.
-  it "Should set the user's profile", :unit do
+  it "Should set the user's profile", :wip do
     fake_event = JSON.parse({
       queryStringParameters: {
         user: 'fake-user',

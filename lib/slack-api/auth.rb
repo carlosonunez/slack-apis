@@ -3,6 +3,7 @@ require 'slack-api/aws_helpers/api_gateway'
 require 'slack-api/slack'
 require 'logger'
 require 'securerandom'
+require 'dynamoid'
 
 module SlackAPI
   module Auth
@@ -108,6 +109,12 @@ once done: #{slack_authorization_uri}"
       SlackAPI::AWSHelpers::APIGateway.return_200(body: message)
     end
 
+    # Retrives a Slack OAuth token from a API Gateway key
+    # TODO: IN PROGRESS
+    def self.get_slack_token_from_key(context:)
+      SlackAPI::AWSHelpers::APIGateway.return_404(body: 'No token exists for this access key.')
+    end
+    
     private
     def self.get_workspace(event)
       begin

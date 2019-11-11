@@ -6,6 +6,7 @@ gem 'aws-sdk'
 gem 'aws-sdk-dynamodb'
 gem 'logger'
 gem 'httparty'
+gem 'dynamoid'
 group :test do
   gem 'pry'
   gem 'selenium-webdriver'

@@ -124,6 +124,19 @@ state=fake-state-id"
       }
       expect(SlackAPI::Auth::finish_auth(fake_event)).to eq expected_response
     end
+
+    it "Should give me an error message when not authenticated", :unit do
+      fake_context = JSON.parse({
+        identity: {
+          apiKey: 'fake-key'
+        }
+      }.to_json)
+      expected_response = {
+        statusCode: 404,
+        body: { message: 'No token exists for this access key.' }.to_json
+      }
+      expect(SlackAPI::Auth::get_slack_token_from_key(context: fake_context)).to eq expected_response
+    end
   end
 
 end
