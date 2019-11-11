@@ -7,6 +7,17 @@ require 'dynamoid'
 
 module SlackAPI
   module Auth
+
+    class SlackToken
+      Dynamoid.configure do |config|
+        config.namespace = "slack_auth"
+      end
+
+      include Dynamoid::Document
+      table name: :tokens, key: :access_key, read_capacity: 2, write_capacity: 2
+      field :access_key
+      field :slack_token
+    end
 =begin
     Handle Slack OAuth callbacks.
 =end
@@ -83,8 +94,17 @@ once done: #{slack_authorization_uri}"
 
     # Retrives a Slack OAuth token from a API Gateway key
     # IN PROGRESS
-    def self.get_slack_token_from_key(context:)
-      SlackAPI::AWSHelpers::APIGateway.return_404(body: 'No token exists for this access key.')
+    def self.get_slack_token(context:)
+      access_key = self.get_access_key_from_context(context)
+      if access_key.nil?
+        return SlackAPI::AWSHelpers::APIGateway.return_422(body: 'Access key missing.')
+      end
+      slack_token = self.get_slack_token_from_access_key(access_key)
+      require 'pry'
+      binding.pry
+      if slack_token.nil?
+        return SlackAPI::AWSHelpers::APIGateway.return_404(body: 'No token exists for this access key.')
+      end
     end
     
     private
@@ -98,6 +118,21 @@ once done: #{slack_authorization_uri}"
 
     def self.generate_state_id
       SecureRandom.hex
+    end
+
+    def self.get_access_key_from_context(context)
+      context['identity']['apiKey']
+    end
+
+    def self.get_slack_token_from_access_key(access_key)
+      begin
+        results = SlackToken.where(access_key: access_key)
+        return nil if results.count == 0
+        results.first.slack_token
+      rescue Aws::DynamoDB::Errors::ResourceNotFoundException
+        puts "WARN: Slack tokens table not created yet."
+        return nil
+      end
     end
   end
 end
