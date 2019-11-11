@@ -13,6 +13,10 @@ services:
     volumes:
       - $PWD:/app
     working_dir: /app
+  dynamodb:
+    image: amazon/dynamodb-local
+    ports:
+      - 8000:8000
   ruby:
     build:
       context: .
@@ -31,6 +35,7 @@ services:
     entrypoint: rspec
     environment:
       LOAD_PATH: "/app/spec/unit;/app/spec;/app/lib"
+      AWS_DYNAMODB_ENDPOINT_URL: "http://dynamodb:8000"
     command:
       - --tag
       - unit

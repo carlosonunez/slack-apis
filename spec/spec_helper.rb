@@ -1,10 +1,10 @@
 require 'rspec'
-require 'slack-api'
 require 'httparty'
-require 'aws-sdk-dynamodb'
 require 'capybara'
 require 'capybara/dsl'
 require 'selenium-webdriver'
+require 'slack-api'
+require 'timeout'
 Dir.glob('/app/spec/helpers/**/*.rb') do |file|
   require_relative file
 end
@@ -15,6 +15,21 @@ end
 # manually await certain data becoming available.
 RSpec.configure do |config|
   config.include Capybara::DSL, :integration => true
+  config.before(:all, :unit => true) do
+    if !$dynamodb_mocking_started
+      Helpers::Aws::DynamoDBLocal.start_mocking!
+      puts "Waiting 60 seconds for local DynamoDB instance to become availble."
+      seconds_elapsed = 0
+      loop do
+        raise "DynamoDB local not ready." if seconds_elapsed == 60
+        break if Helpers::Aws::DynamoDBLocal.started?
+        seconds_elapsed += 1
+        sleep(1)
+      end
+      $dynamodb_mocking_started = true
+    end
+  end
+
   config.before(:all, :integration => true) do
     ['SELENIUM_HOST', 'SELENIUM_PORT'].each do |required_selenium_env_var|
       raise "Please set #{required_selenium_env_var}" if ENV[required_selenium_env_var].nil?
