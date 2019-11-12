@@ -1,5 +1,6 @@
 require 'aws-sdk'
 require 'aws-sdk-dynamodb'
+require 'dynamoid'
 
 module Helpers
   module Aws
@@ -19,6 +20,16 @@ with the AWS_DYNAMODB_ENDPOINT_URL environment variable" \
         dynamodb = ::Aws::DynamoDB::Client.new
         dynamodb.list_tables
         return true
+      end
+
+      def self.drop_tables!
+        Dynamoid.adapter.list_tables.each do |table|
+          if table =~ /^#{Dynamoid::Config.namespace}/
+            Dynamoid.adapter.delete_table(table)
+          end
+        end
+        Dynamoid.adapter.tables.clear
+        Dynamoid.included_models.each { |m| m.create_table(sync: true) }
       end
 
       private

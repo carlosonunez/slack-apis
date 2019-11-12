@@ -11,6 +11,7 @@ module SlackAPI
     class SlackToken
       Dynamoid.configure do |config|
         config.namespace = "slack_auth"
+        config.logger.level = Logger::FATAL
       end
 
       include Dynamoid::Document
@@ -44,7 +45,7 @@ module SlackAPI
 =begin
     Finish the authentication flow when given a code and state. 
 =end
-    def self.finish_auth(event)
+    def self.finish_auth(event:, context:)
       raise "Code not in request" if event['queryStringParameters']['code'].nil?
       code = event['queryStringParameters']['code']
       callback_url = [
@@ -64,10 +65,8 @@ module SlackAPI
         )
       end
       token = token_response_json['access_token']
-      SlackAPI::AWSHelpers::APIGateway.return_200(
-        body: nil,
-        json: { status: 'ok', token: token }
-      )
+      self.put_slack_token(context: context,
+                           slack_token: token)
     end
 
     def self.begin_authentication_flow(event, client_id:)
@@ -93,17 +92,39 @@ once done: #{slack_authorization_uri}"
     end
 
     # Retrives a Slack OAuth token from a API Gateway key
-    # IN PROGRESS
     def self.get_slack_token(context:)
       access_key = self.get_access_key_from_context(context)
       if access_key.nil?
         return SlackAPI::AWSHelpers::APIGateway.return_422(body: 'Access key missing.')
       end
       slack_token = self.get_slack_token_from_access_key(access_key)
-      require 'pry'
-      binding.pry
       if slack_token.nil?
         return SlackAPI::AWSHelpers::APIGateway.return_404(body: 'No token exists for this access key.')
+      end
+      SlackAPI::AWSHelpers::APIGateway.return_200(
+        body: nil,
+        json: { status: 'ok' }
+      )
+    end
+
+    # Puts a new token and API key into DynamoDB
+    def self.put_slack_token(context:, slack_token:)
+      access_key = self.get_access_key_from_context(context)
+      if access_key.nil?
+        return SlackAPI::AWSHelpers::APIGateway.return_422(body: 'Access key missing.')
+      end
+      begin
+        mapping = SlackToken.new(access_key: access_key,
+                                 slack_token: slack_token)
+        mapping.save
+        SlackAPI::AWSHelpers::APIGateway.return_200(
+          body: nil,
+          json: { status: 'ok' }
+        )
+      rescue Exception => e
+        SlackAPI::AWSHelpers::APIGateway.return_422(
+          body: "Saving token failed: #{e}"
+        )
       end
     end
     

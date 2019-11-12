@@ -37,6 +37,10 @@ module SlackAPI
       def self.return_404(body:)
         self.send_response(code: 404, payload: { message: body })
       end
+
+      def self.return_422(body:)
+        self.send_response(code: 422, payload: { message: body })
+      end
     end
   end
 end

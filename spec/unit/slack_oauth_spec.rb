@@ -100,6 +100,11 @@ state=fake-state-id"
 
   context 'Finishing authentication' do
     it "Should give me a token once I finish auth", :unit do
+      fake_context = JSON.parse({
+        identity: {
+          apiKey: 'fake-key'
+        }
+      }.to_json)
       fake_event = JSON.parse({
         requestContext: {
           path: '/develop/final_auth'
@@ -120,12 +125,14 @@ state=fake-state-id"
       allow(SlackAPI::Slack::API).to receive(:get).and_return slack_response
       expected_response = {
         statusCode: 200,
-        body: { status: 'ok', token: 'fake-token' }.to_json
+        body: { status: 'ok' }.to_json
       }
-      expect(SlackAPI::Auth::finish_auth(fake_event)).to eq expected_response
+      expect(SlackAPI::Auth::finish_auth(event: fake_event,
+                                        context: fake_context)).to eq expected_response
     end
 
     it "Should give me an error message when not authenticated", :unit do
+      Helpers::Aws::DynamoDBLocal.drop_tables!
       fake_context = JSON.parse({
         identity: {
           apiKey: 'fake-key'
@@ -137,6 +144,22 @@ state=fake-state-id"
       }
       expect(SlackAPI::Auth::get_slack_token(context: fake_context)).to eq expected_response
     end
+
+    it "Should persist tokens with their associated API keys", :unit do
+      fake_context = JSON.parse({
+        identity: {
+          apiKey: 'fake-key'
+        }
+      }.to_json)
+      expected_response = {
+        statusCode: 200,
+        body: { status: 'ok' }.to_json
+      }
+      expect(SlackAPI::Auth::put_slack_token(context: fake_context,
+                                             slack_token: 'fake')).to eq expected_response
+      expect(SlackAPI::Auth::get_slack_token(context: fake_context)).to eq expected_response
+    end
+
   end
 
 end
