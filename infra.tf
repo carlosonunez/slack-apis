@@ -53,7 +53,18 @@ resource "aws_iam_user_policy" "app" {
   "Version": "2012-10-17",
   "Statement": [
      {
-        "Action": ["s3:ListObjects"],
+        "Action": [
+          "s3:ListObjects",
+          "dynamodb:ListTables",
+          "dynamodb:DescribeTable",
+          "dynamodb:Query",
+          "dynamodb:GetItem",
+          "dynamodb:BatchGetItem",
+          "dynamodb:PutItem",
+          "dynamodb:UpdateItem",
+          "dynamodb:DeleteItem",
+          "dynamodb:BatchWriteItem"
+        ],
         "Effect": "Allow",
         "Resource": "*"
      }
