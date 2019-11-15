@@ -22,19 +22,27 @@ module SlackAPI
 =begin
     Handle Slack OAuth callbacks.
 =end
-    def self.handle_callback(event)
+    def self.handle_callback(event, context)
       parameters = event['queryStringParameters']
       raise "Parameters missing a code or error" \
         if (parameters['code'].nil? and parameters['state'].nil?) \
           and parameters['error'].nil?
       if (!parameters['code'].nil? and !parameters['state'].nil?)
-        next_url = "https://" + \
-          SlackAPI::AWSHelpers::APIGateway.get_endpoint(event, path_to_remove: '/callback') + \
-          "/finish_auth?code=#{parameters['code']}&state=#{parameters['state']}"
-        SlackAPI::AWSHelpers::APIGateway.return_200(
-          body: nil,
-          json: { go_here: next_url }
-        )
+        callback_url = SlackAPI::AWSHelpers::APIGateway.get_endpoint(event) + '/callback'
+        token_response = SlackAPI::Slack::OAuth.access(client_id: ENV['SLACK_APP_CLIENT_ID'],
+                                                       client_secret: ENV['SLACK_APP_CLIENT_SECRET'],
+                                                       redirect_uri: callback_url,
+                                                       code: parameters['code'])
+        raise "Unable to get Slack token" if token_response.body.nil?
+        token_response_json = JSON.parse(token_response.body)
+        if !token_response_json['ok'].nil? and !token_response_json['ok']
+          return SlackAPI::AWSHelpers::APIGateway.return_403(
+            body: "Token request failed: #{token_response_json['error']}"
+          )
+        end
+        token = token_response_json['access_token']
+        self.put_slack_token(context: context,
+                             slack_token: token)
       elsif !parameters['error'].nil?
         SlackAPI::AWSHelpers::APIGateway.return_403(
           body: 'User denied this app access to their Slack account.'
@@ -43,32 +51,8 @@ module SlackAPI
     end
 
 =begin
-    Finish the authentication flow when given a code and state. 
+    Provide a first step for the authentication flow.
 =end
-    def self.finish_auth(event:, context:)
-      raise "Code not in request" if event['queryStringParameters']['code'].nil?
-      code = event['queryStringParameters']['code']
-      callback_url = [
-        "https://#{SlackAPI::AWSHelpers::APIGateway.get_endpoint(event, path_to_remove:'/finish_auth')}",
-        "callback"
-      ].join('/')
-
-      token_response = SlackAPI::Slack::OAuth.access(client_id: ENV['SLACK_APP_CLIENT_ID'],
-                                                    client_secret: ENV['SLACK_APP_CLIENT_SECRET'],
-                                                    redirect_uri: callback_url,
-                                                    code: code)
-      raise "Unable to get Slack token" if token_response.body.nil?
-      token_response_json = JSON.parse(token_response.body)
-      if !token_response_json['ok'].nil? and !token_response_json['ok']
-        return SlackAPI::AWSHelpers::APIGateway.return_403(
-          body: "Token request failed: #{token_response_json['error']}"
-        )
-      end
-      token = token_response_json['access_token']
-      self.put_slack_token(context: context,
-                           slack_token: token)
-    end
-
     def self.begin_authentication_flow(event, client_id:)
       scopes_csv = ENV['SLACK_APP_CLIENT_SCOPES'] || "users.profile:read,users.profile:write"
       redirect_uri = "https://#{SlackAPI::AWSHelpers::APIGateway.get_endpoint(event)}/callback"
@@ -85,9 +69,8 @@ module SlackAPI
         "redirect_uri=#{redirect_uri}",
         "state=#{state_id}"
       ].join '&'
-      message = "You will need to authenticate into Slack first. To do so, \
-click on or copy/paste the link below, then go to /finish_auth with the code given \
-once done: #{slack_authorization_uri}"
+      message = "You will need to authenticate into Slack first; click on or \
+copy/paste this URL to get started: #{slack_authorization_uri}"
       SlackAPI::AWSHelpers::APIGateway.return_200(body: message)
     end
 
@@ -103,31 +86,10 @@ once done: #{slack_authorization_uri}"
       end
       SlackAPI::AWSHelpers::APIGateway.return_200(
         body: nil,
-        json: { status: 'ok' }
+        json: { token: slack_token }
       )
     end
 
-    # Puts a new token and API key into DynamoDB
-    def self.put_slack_token(context:, slack_token:)
-      access_key = self.get_access_key_from_context(context)
-      if access_key.nil?
-        return SlackAPI::AWSHelpers::APIGateway.return_422(body: 'Access key missing.')
-      end
-      begin
-        mapping = SlackToken.new(access_key: access_key,
-                                 slack_token: slack_token)
-        mapping.save
-        SlackAPI::AWSHelpers::APIGateway.return_200(
-          body: nil,
-          json: { status: 'ok' }
-        )
-      rescue Exception => e
-        SlackAPI::AWSHelpers::APIGateway.return_422(
-          body: "Saving token failed: #{e}"
-        )
-      end
-    end
-    
     private
     def self.get_workspace(event)
       begin
@@ -155,5 +117,27 @@ once done: #{slack_authorization_uri}"
         return nil
       end
     end
+
+    # Puts a new token and API key into DynamoDB
+    def self.put_slack_token(context:, slack_token:)
+      access_key = self.get_access_key_from_context(context)
+      if access_key.nil?
+        return SlackAPI::AWSHelpers::APIGateway.return_422(body: 'Access key missing.')
+      end
+      begin
+        mapping = SlackToken.new(access_key: access_key,
+                                 slack_token: slack_token)
+        mapping.save
+        SlackAPI::AWSHelpers::APIGateway.return_200(
+          body: nil,
+          json: { status: 'ok' }
+        )
+      rescue Exception => e
+        SlackAPI::AWSHelpers::APIGateway.return_422(
+          body: "Saving token failed: #{e}"
+        )
+      end
+    end
+    
   end
 end

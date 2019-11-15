@@ -7,9 +7,9 @@ end
 require 'slack-api'
 require 'json'
 
-# Finish a Slack OAuth authentication flow.
-def finish_auth(event: {}, context: {})
-  SlackAPI::Auth.finish_auth(event)
+# Retrieve tokens for autheticated users.
+def get_token(event: {}, context: {})
+  SlackAPI::Auth.get_slack_token(context: context)
 end
 
 # Begin the Slack OAuth flow manually.

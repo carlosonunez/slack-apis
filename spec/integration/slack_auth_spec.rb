@@ -25,7 +25,7 @@ redirect_uri=#{$api_gateway_url}/callback&state=[a-zA-Z0-9]{32}}
   # We need to use Capybara here since retrieving the final authentication URL
   # requires user action through a GUI.
   context "Step 2" do
-    it "Should get a URL to finish authenticating", :integration do
+    it "Should save my token with my API key", :integration do
       uri = "#{$api_gateway_url}/auth?workspace=#{ENV['SLACK_WORKSPACE_NAME']}"
       response = HTTParty.get(uri, {
         headers: { 'x-api-key': $test_api_key }
@@ -38,23 +38,17 @@ redirect_uri=#{$api_gateway_url}/callback&state=[a-zA-Z0-9]{32}}
       fill_in "password", with: ENV['SLACK_SANDBOX_ACCOUNT_PASSWORD']
       click_button "signin_btn"
       click_button "Allow"
-      expect(page).to have_content 'go_here'
-
-      next_url_serialized = page.html.match('.*({\"go_here\".*})')[1]
-      next_url = JSON.parse(next_url_serialized)
-      expect(next_url['go_here']).not_to be_nil
-
-      @final_auth_url << next_url['go_here']
+      expect(page).to have_context("status: \"ok\"")
     end
   end
 
   context "Step 3" do
     it "Should provide me with a token", :integration do
-      response = HTTParty.get(@final_auth_url, {
+      response = HTTParty.get("#{@api_gateway_url}/getToken", {
         headers: { 'x-api-key': $test_api_key }
       })
       expect(response.code.to_i).to eq 200
-      expect(JSON.parse(response.body)['status']).to eq 'ok'
+      expect(JSON.parse(response.body)['token']).to match(/^xoxp-/)
     end
   end
 end

@@ -15,6 +15,7 @@ services:
     entrypoint: sh
     volumes:
       - "$PWD/vendor:/vendor"
+      - "$PWD/Gemfile:/Gemfile"
     command:
       - -c
       - "bundle install && cp -R /usr/local/bundle /vendor"

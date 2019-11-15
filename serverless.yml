@@ -15,7 +15,7 @@ provider:
     name: ${env:SERVERLESS_BUCKET_NAME}
   deploymentPrefix: serverless
   apiKeys:
-    - default_key
+    - default_key_for_slack_api
   tracing:
     apiGateway: true
 
@@ -52,9 +52,21 @@ functions:
     timeout: 30
     environment:
       GEM_PATH: vendor/bundle
+      SLACK_APP_CLIENT_ID: ${env:SLACK_APP_CLIENT_ID}
+      SLACK_APP_CLIENT_SECRET: ${env:SLACK_APP_CLIENT_SECRET}
     events:
       - http:
           path: callback
+          method: get
+  getToken:
+    handler: bin/slack-api.get_token
+    description: Retrieves tokens for authenticated users.
+    timeout: 30
+    environment:
+      GEM_PATH: vendor/bundle
+    events:
+      - http:
+          path: getToken
           method: get
   ping:
     handler: bin/slack-api.ping
@@ -66,19 +78,6 @@ functions:
       - http:
           path: ping
           method: get
-  finish_auth:
-    handler: bin/slack-api.finish_auth
-    description: Finishes a Slack OAuth flow.
-    timeout: 30
-    environment:
-      GEM_PATH: vendor/bundle
-      SLACK_APP_CLIENT_ID: ${env:SLACK_APP_CLIENT_ID}
-      SLACK_APP_CLIENT_SECRET: ${env:SLACK_APP_CLIENT_SECRET}
-    events:
-      - http:
-          path: finish_auth
-          method: get
-          private: true
 
 custom:
   stage: "${opt:stage, self:provider.stage}"

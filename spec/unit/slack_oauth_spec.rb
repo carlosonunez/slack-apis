@@ -2,45 +2,6 @@ require 'spec_helper'
 require 'ostruct'
 
 describe "Handling fucking Slack OAuth" do
-  context "Slack OAuth callback" do
-    it "Should show me the next place to go", :unit do
-      fake_event = JSON.parse({
-        queryStringParameters: {
-          code: 'fake-code',
-          state: 'fake-state'
-        },
-        requestContext: {
-          path: '/develop/callback'
-        },
-        headers: {
-          Host: 'example.fake'
-        }
-      }.to_json) # doing this so that we get string keys
-      expected_response = {
-        statusCode: 200,
-        body: {
-          go_here: "https://example.fake/develop/finish_auth?code=fake-code&state=fake-state"
-        }.to_json
-      }
-      expect(SlackAPI::Auth.handle_callback(fake_event))
-        .to eq(expected_response)
-    end
-
-    it "Should show me an error when a user denies the request", :unit do
-      fake_event = JSON.parse({
-        'queryStringParameters': {
-          'error': 'access-denied'
-        }
-      }.to_json) # doing this so that we get string keys
-      expected_response = {
-        statusCode: 403,
-        body: { message: 'User denied this app access to their Slack account.' }.to_json
-      }
-      expect(SlackAPI::Auth.handle_callback(fake_event))
-        .to eq(expected_response)
-    end
-  end
-
   context "Not authenticated yet" do
     it "Should give the user an auth init prompt without providing a workspace", :unit do
       expect(SecureRandom).to receive(:hex).and_return('fake-state-id')
@@ -55,9 +16,8 @@ describe "Handling fucking Slack OAuth" do
           Host: 'example.fake'
         }
       }.to_json)
-      expected_message = "You will need to authenticate into Slack first. \
-To do so, click on or copy/paste \
-the link below, then go to /finish_auth with the code given once done: \
+      expected_message = "You will need to authenticate into Slack first; \
+click on or copy/paste this URL to get started: \
 https://fake.slack.com/oauth/authorize?client_id=fake&\
 scope=users.profile:read,users.profile:write&\
 redirect_uri=https://example.fake/develop/callback&\
@@ -81,9 +41,8 @@ state=fake-state-id"
           Host: 'example.fake'
         }
       }.to_json)
-      expected_message = "You will need to authenticate into Slack first. \
-To do so, click on or copy/paste \
-the link below, then go to /finish_auth with the code given once done: \
+      expected_message = "You will need to authenticate into Slack first; \
+click on or copy/paste this URL to get started: \
 https://slack.com/oauth/authorize?client_id=fake&\
 scope=users.profile:read,users.profile:write&\
 redirect_uri=https://example.fake/develop/callback&\
@@ -98,8 +57,12 @@ state=fake-state-id"
     end
   end
 
-  context 'Finishing authentication' do
-    it "Should give me a token once I finish auth", :unit do
+  context "Slack OAuth callback" do
+    it "Should ok if I was able to get a token", :unit do
+      expected_response = {
+        statusCode: 200,
+        body: { status: 'ok' }.to_json
+      }
       fake_context = JSON.parse({
         identity: {
           apiKey: 'fake-key'
@@ -117,21 +80,19 @@ state=fake-state-id"
           Host: 'example.host'
         }
       }.to_json)
-      slack_response_json = {
-        access_token: 'fake-token',
-        scope: 'read'
-      }.to_json
-      slack_response = instance_double(HTTParty::Response, body: slack_response_json)
-      allow(SlackAPI::Slack::API).to receive(:get).and_return slack_response
-      expected_response = {
-        statusCode: 200,
-        body: { status: 'ok' }.to_json
-      }
-      expect(SlackAPI::Auth::finish_auth(event: fake_event,
-                                        context: fake_context)).to eq expected_response
+      allow(SlackAPI::Slack::OAuth).to receive(:access).and_return(OpenStruct.new(
+        body: {
+          ok: true,
+          access_token: 'fake-token',
+          scope: 'read'
+        }.to_json))
+      expect(SlackAPI::Auth::handle_callback(fake_event, fake_context)).to eq expected_response
     end
+  end
 
-    it "Should give me an error message when not authenticated", :unit do
+
+  context 'Tokens' do
+    it "Should give me an error message when retrieving tokens while not authenticated", :unit do
       Helpers::Aws::DynamoDBLocal.drop_tables!
       fake_context = JSON.parse({
         identity: {
@@ -155,11 +116,13 @@ state=fake-state-id"
         statusCode: 200,
         body: { status: 'ok' }.to_json
       }
+      expected_get_response = {
+        statusCode: 200,
+        body: { token: 'fake' }.to_json
+      }
       expect(SlackAPI::Auth::put_slack_token(context: fake_context,
                                              slack_token: 'fake')).to eq expected_response
-      expect(SlackAPI::Auth::get_slack_token(context: fake_context)).to eq expected_response
+      expect(SlackAPI::Auth::get_slack_token(context: fake_context)).to eq expected_get_response
     end
-
   end
-
 end
