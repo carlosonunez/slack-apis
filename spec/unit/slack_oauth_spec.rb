@@ -27,7 +27,7 @@ describe "Slack OAuth" do
       }.to_json)
       expected_response = {
         statusCode: 404,
-        body: { message: 'No token exists for this access key.' }.to_json
+        body: { status: 'error', message: 'No token exists for this access key.' }.to_json
       }
       expect(SlackAPI::Auth::get_slack_token(context: fake_context)).to eq expected_response
     end
@@ -40,10 +40,10 @@ describe "Slack OAuth" do
       }.to_json)
       expected_get_response = {
         statusCode: 200,
-        body: { token: 'fake' }.to_json
+        body: { status: 'ok', token: 'fake' }.to_json
       }
       expect(SlackAPI::Auth::put_slack_token(context: fake_context,
-                                             slack_token: 'fake')).to be_true
+                                             slack_token: 'fake')).to be true
       expect(SlackAPI::Auth::get_slack_token(context: fake_context)).to eq expected_get_response
     end
   end
@@ -75,7 +75,7 @@ redirect_uri=https://example.fake/develop/callback&\
 state=fake-state-id"
       expected_response = {
         statusCode: 200,
-        body: { message: expected_message }.to_json
+        body: { status: 'ok', message: expected_message }.to_json
       }
       expect(SlackAPI::Auth::begin_authentication_flow(fake_event,
                                                        fake_context,
@@ -107,7 +107,7 @@ redirect_uri=https://example.fake/develop/callback&\
 state=fake-state-id"
       expected_response = {
         statusCode: 200,
-        body: { message: expected_message }.to_json
+        body: { status: 'ok', message: expected_message }.to_json
       }
       expect(SlackAPI::Auth::begin_authentication_flow(fake_event,
                                                        fake_context,

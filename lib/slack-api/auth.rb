@@ -48,15 +48,19 @@ module SlackAPI
         raise "Unable to get Slack token" if token_response.body.nil?
         token_response_json = JSON.parse(token_response.body)
         if !token_response_json['ok'].nil? and !token_response_json['ok']
-          return SlackAPI::AWSHelpers::APIGateway.return_403(
-            body: "Token request failed: #{token_response_json['error']}"
+          return SlackAPI::AWSHelpers::APIGateway.return_unauthenticated(
+            message: "Token request failed: #{token_response_json['error']}"
           )
         end
         token = token_response_json['access_token']
-        self.put_slack_token(context: context, slack_token: token)
+        if self.put_slack_token(context: context, slack_token: token)
+          SlackAPI::AWSHelpers::APIGateway.return_ok
+        else
+          SlackAPI::AWSHelpers::APIGateway.return_error(message: "Unable to save Slack token.")
+        end
       elsif !parameters['error'].nil?
-        SlackAPI::AWSHelpers::APIGateway.return_403(
-          body: 'User denied this app access to their Slack account.'
+        SlackAPI::AWSHelpers::APIGateway.return_unauthenticated(
+          message: 'User denied this app access to their Slack account.'
         )
       end
     end
@@ -85,9 +89,10 @@ copy/paste this URL to get started: #{slack_authorization_uri}"
       begin
         self.associate_access_key_to_state_id!(context: context,
                                                state_id: state_id)
-        SlackAPI::AWSHelpers::APIGateway.return_200(body: message)
-      rescue
-        SlackAPI::AWSHelpers::APIGateway.return_422(body: "Couldn't map state to access key.")
+        SlackAPI::AWSHelpers::APIGateway.return_ok(message: message)
+      rescue Exception => e
+        SlackAPI::AWSHelpers::APIGateway.return_error(
+          message: "Couldn't map state to access key: #{e}")
       end
     end
 
@@ -95,16 +100,15 @@ copy/paste this URL to get started: #{slack_authorization_uri}"
     def self.get_slack_token(context:)
       access_key = self.get_access_key_from_context(context)
       if access_key.nil?
-        return SlackAPI::AWSHelpers::APIGateway.return_422(body: 'Access key missing.')
+        return SlackAPI::AWSHelpers::APIGateway.return_error(message: 'Access key missing.')
       end
       slack_token = self.get_slack_token_from_access_key(access_key)
       if slack_token.nil?
-        return SlackAPI::AWSHelpers::APIGateway.return_404(body: 'No token exists for this access key.')
+        return SlackAPI::AWSHelpers::APIGateway.return_not_found(
+          message: 'No token exists for this access key.')
       end
-      SlackAPI::AWSHelpers::APIGateway.return_200(
-        body: nil,
-        json: { token: slack_token }
-      )
+      SlackAPI::AWSHelpers::APIGateway.return_ok(
+        additional_json: { token: slack_token })
     end
 
     private
@@ -137,22 +141,20 @@ copy/paste this URL to get started: #{slack_authorization_uri}"
 
     # Puts a new token and API key into DynamoDB
     def self.put_slack_token(context:, slack_token:)
-      access_key = self.get_access_key_from_context(context)
-      if access_key.nil?
-        return SlackAPI::AWSHelpers::APIGateway.return_422(body: 'Access key missing.')
+      begin
+        access_key = self.get_access_key_from_context(context)
+      rescue
+        puts "ERROR: Access key not found while attempting to save Slack token"
+        return false
       end
       begin
         mapping = SlackToken.new(access_key: access_key,
                                  slack_token: slack_token)
         mapping.save
-        SlackAPI::AWSHelpers::APIGateway.return_200(
-          body: nil,
-          json: { status: 'ok' }
-        )
+        return true
       rescue Exception => e
-        SlackAPI::AWSHelpers::APIGateway.return_422(
-          body: "Saving token failed: #{e}"
-        )
+        puts "ERROR: We weren't able to save this token: #{e}"
+        return false
       end
     end
 
