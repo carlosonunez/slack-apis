@@ -38,16 +38,12 @@ describe "Slack OAuth" do
           apiKey: 'fake-key'
         }
       }.to_json)
-      expected_response = {
-        statusCode: 200,
-        body: { status: 'ok' }.to_json
-      }
       expected_get_response = {
         statusCode: 200,
         body: { token: 'fake' }.to_json
       }
       expect(SlackAPI::Auth::put_slack_token(context: fake_context,
-                                             slack_token: 'fake')).to eq expected_response
+                                             slack_token: 'fake')).to be_true
       expect(SlackAPI::Auth::get_slack_token(context: fake_context)).to eq expected_get_response
     end
   end
