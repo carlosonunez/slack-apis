@@ -1,8 +1,8 @@
 require 'spec_helper'
 require 'ostruct'
 
-describe "Handling fucking Slack OAuth" do
-  context "Not authenticated yet" do
+describe "Slack OAuth" do
+  context "We aren't authenticated yet" do
     it "Should give the user an auth init prompt without providing a workspace", :unit do
       Helpers::Aws::DynamoDBLocal.drop_tables!
       expect(SecureRandom).to receive(:hex).and_return('fake-state-id')
@@ -40,7 +40,7 @@ state=fake-state-id"
         .to eq 'fake-key'
     end
 
-    it "Should give the user an auth init prompt when a workspace is provided", :unit do
+    it "Should give the user an auth init prompt A workspace is provided", :unit do
       Helpers::Aws::DynamoDBLocal.drop_tables!
       expect(SecureRandom).to receive(:hex).and_return('fake-state-id')
       fake_context = JSON.parse({
@@ -75,7 +75,7 @@ state=fake-state-id"
     end
   end
 
-  context "Slack OAuth callback" do
+  context "We've been authenticated" do
     it "Should ok if I was able to get a token", :unit do
       expected_response = {
         statusCode: 200,
@@ -109,8 +109,8 @@ state=fake-state-id"
   end
 
 
-  context 'Tokens' do
-    it "Should give me an error message when retrieving tokens while not authenticated", :unit do
+  context 'Handling tokens' do
+    it "Should give me an error message Retrieving tokens while not authenticated", :unit do
       Helpers::Aws::DynamoDBLocal.drop_tables!
       fake_context = JSON.parse({
         identity: {
