@@ -1,4 +1,3 @@
-require 'aws-sdk'
 require 'aws-sdk-dynamodb'
 require 'dynamoid'
 
