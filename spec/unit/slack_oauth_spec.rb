@@ -2,6 +2,55 @@ require 'spec_helper'
 require 'ostruct'
 
 describe "Slack OAuth" do
+  context 'Handling state associations' do
+    it "Should save access keys with state IDs", :unit do
+      Helpers::Aws::DynamoDBLocal.drop_tables!
+      fake_context = JSON.parse({
+        identity: {
+          apiKey: 'fake-key'
+        }
+      }.to_json)
+      SlackAPI::Auth.associate_access_key_to_state_id!(context: fake_context,
+                                                       state_id: 'fake-state-id')
+      expect(SlackAPI::Auth.get_access_key_from_state(state_id: 'fake-state-id'))
+        .to eq 'fake-key'
+    end
+  end
+
+  context 'Handling tokens' do
+    it "Should give me an error message Retrieving tokens while not authenticated", :unit do
+      Helpers::Aws::DynamoDBLocal.drop_tables!
+      fake_context = JSON.parse({
+        identity: {
+          apiKey: 'fake-key'
+        }
+      }.to_json)
+      expected_response = {
+        statusCode: 404,
+        body: { message: 'No token exists for this access key.' }.to_json
+      }
+      expect(SlackAPI::Auth::get_slack_token(context: fake_context)).to eq expected_response
+    end
+
+    it "Should persist tokens with their associated API keys", :unit do
+      fake_context = JSON.parse({
+        identity: {
+          apiKey: 'fake-key'
+        }
+      }.to_json)
+      expected_response = {
+        statusCode: 200,
+        body: { status: 'ok' }.to_json
+      }
+      expected_get_response = {
+        statusCode: 200,
+        body: { token: 'fake' }.to_json
+      }
+      expect(SlackAPI::Auth::put_slack_token(context: fake_context,
+                                             slack_token: 'fake')).to eq expected_response
+      expect(SlackAPI::Auth::get_slack_token(context: fake_context)).to eq expected_get_response
+    end
+  end
   context "We aren't authenticated yet" do
     it "Should give the user an auth init prompt without providing a workspace", :unit do
       Helpers::Aws::DynamoDBLocal.drop_tables!
@@ -36,8 +85,6 @@ state=fake-state-id"
                                                        fake_context,
                                                        client_id: 'fake'))
         .to eq expected_response
-      expect(SlackAPI::Auth.get_access_key_from_state(state_id: 'fake-state-id'))
-        .to eq 'fake-key'
     end
 
     it "Should give the user an auth init prompt A workspace is provided", :unit do
@@ -70,8 +117,6 @@ state=fake-state-id"
                                                        fake_context,
                                                        client_id: 'fake'))
         .to eq expected_response
-      expect(SlackAPI::Auth.get_access_key_from_state(state_id: 'fake-state-id'))
-        .to eq 'fake-key'
     end
   end
 
@@ -105,42 +150,6 @@ state=fake-state-id"
           scope: 'read'
         }.to_json))
       expect(SlackAPI::Auth::handle_callback(fake_event, fake_context)).to eq expected_response
-    end
-  end
-
-
-  context 'Handling tokens' do
-    it "Should give me an error message Retrieving tokens while not authenticated", :unit do
-      Helpers::Aws::DynamoDBLocal.drop_tables!
-      fake_context = JSON.parse({
-        identity: {
-          apiKey: 'fake-key'
-        }
-      }.to_json)
-      expected_response = {
-        statusCode: 404,
-        body: { message: 'No token exists for this access key.' }.to_json
-      }
-      expect(SlackAPI::Auth::get_slack_token(context: fake_context)).to eq expected_response
-    end
-
-    it "Should persist tokens with their associated API keys", :unit do
-      fake_context = JSON.parse({
-        identity: {
-          apiKey: 'fake-key'
-        }
-      }.to_json)
-      expected_response = {
-        statusCode: 200,
-        body: { status: 'ok' }.to_json
-      }
-      expected_get_response = {
-        statusCode: 200,
-        body: { token: 'fake' }.to_json
-      }
-      expect(SlackAPI::Auth::put_slack_token(context: fake_context,
-                                             slack_token: 'fake')).to eq expected_response
-      expect(SlackAPI::Auth::get_slack_token(context: fake_context)).to eq expected_get_response
     end
   end
 end
