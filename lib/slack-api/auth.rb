@@ -27,9 +27,9 @@ module SlackAPI
       end
 
       include Dynamoid::Document
-      table name: :state_associations, key: :access_key, read_capacity: 2, write_capacity: 2
+      table name: :state_associations, key: :state_id, read_capacity: 2, write_capacity: 2
       field :access_key
-      field :slack_oauth_state
+      field :state_id
     end
 =begin
     Handle Slack OAuth callbacks.
@@ -182,7 +182,15 @@ access key with state."
     end
 
     # Gets an access key from a given state ID
-    def self.get_access_key_from_state(context:, state_id:)
+    def self.get_access_key_from_state(state_id:)
+      begin
+        results = SlackAuthState.where(state_id: state_id)
+        return nil if results.nil? or results.count == 0
+        results.first.access_key
+      rescue Aws::DynamoDB::Errors::ResourceNotFoundException
+        puts "WARN: State associations table not created yet."
+        return nil
+      end
     end
   end
 end
