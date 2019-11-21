@@ -14,7 +14,7 @@ module SlackAPI
         "#{host}#{path_subbed}"
       end
 
-      def self.return_ok(message: nil, additional_json: nil)
+      def self.ok(message: nil, additional_json: nil)
         if message.nil? and additional_json.nil?
           self.return_200(json: { status: 'ok' })
         elsif !message.nil?
@@ -25,15 +25,15 @@ module SlackAPI
         end
       end
 
-      def self.return_error(message:)
+      def self.error(message:)
         self.return_422(body: message)
       end
 
-      def self.return_not_found(message:)
+      def self.not_found(message:)
         self.return_404(body: message)
       end
 
-      def self.return_unauthenticated(message: nil)
+      def self.unauthenticated(message: nil)
         if message.nil?
           self.return_403(body: 'Access denied.')
         else

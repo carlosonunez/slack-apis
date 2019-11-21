@@ -42,7 +42,7 @@ describe "Slack OAuth" do
         statusCode: 200,
         body: { status: 'ok', token: 'fake' }.to_json
       }
-      expect(SlackAPI::Auth::put_slack_token(context: fake_context,
+      expect(SlackAPI::Auth::put_slack_token(access_key: 'fake-key',
                                              slack_token: 'fake')).to be true
       expect(SlackAPI::Auth::get_slack_token(context: fake_context)).to eq expected_get_response
     end
@@ -83,7 +83,7 @@ state=fake-state-id"
         .to eq expected_response
     end
 
-    it "Should give the user an auth init prompt A workspace is provided", :unit do
+    it "Should give the user an auth init prompt when a workspace is provided", :unit do
       Helpers::Aws::DynamoDBLocal.drop_tables!
       expect(SecureRandom).to receive(:hex).and_return('fake-state-id')
       fake_context = JSON.parse({
@@ -145,6 +145,7 @@ state=fake-state-id"
           access_token: 'fake-token',
           scope: 'read'
         }.to_json))
+      allow(SlackAPI::Auth).to receive(:get_access_key_from_state).and_return('fake-key')
       expect(SlackAPI::Auth::handle_callback(fake_event, fake_context)).to eq expected_response
     end
   end
