@@ -19,6 +19,18 @@ module SlackAPI
       field :access_key
       field :slack_token
     end
+
+    class SlackAuthState
+      Dynamoid.configure do |config|
+        config.namespace = "slack_auth_state"
+        config.logger.level = Logger::FATAL
+      end
+
+      include Dynamoid::Document
+      table name: :state_associations, key: :access_key, read_capacity: 2, write_capacity: 2
+      field :access_key
+      field :slack_oauth_state
+    end
 =begin
     Handle Slack OAuth callbacks.
 =end
@@ -41,8 +53,7 @@ module SlackAPI
           )
         end
         token = token_response_json['access_token']
-        self.put_slack_token(context: context,
-                             slack_token: token)
+        self.put_slack_token(context: context, slack_token: token)
       elsif !parameters['error'].nil?
         SlackAPI::AWSHelpers::APIGateway.return_403(
           body: 'User denied this app access to their Slack account.'
@@ -53,7 +64,7 @@ module SlackAPI
 =begin
     Provide a first step for the authentication flow.
 =end
-    def self.begin_authentication_flow(event, client_id:)
+    def self.begin_authentication_flow(event, context, client_id:)
       scopes_csv = ENV['SLACK_APP_CLIENT_SCOPES'] || "users.profile:read,users.profile:write"
       redirect_uri = "https://#{SlackAPI::AWSHelpers::APIGateway.get_endpoint(event)}/callback"
       workspace = self.get_workspace(event)
@@ -71,7 +82,13 @@ module SlackAPI
       ].join '&'
       message = "You will need to authenticate into Slack first; click on or \
 copy/paste this URL to get started: #{slack_authorization_uri}"
-      SlackAPI::AWSHelpers::APIGateway.return_200(body: message)
+      begin
+        self.associate_access_key_to_state_id!(context: context,
+                                               state_id: state_id)
+        SlackAPI::AWSHelpers::APIGateway.return_200(body: message)
+      rescue
+        SlackAPI::AWSHelpers::APIGateway.return_422(body: "Couldn't map state to access key.")
+      end
     end
 
     # Retrives a Slack OAuth token from a API Gateway key
@@ -138,6 +155,34 @@ copy/paste this URL to get started: #{slack_authorization_uri}"
         )
       end
     end
-    
+
+    # Because the Slack OAuth service invokes /callback after the
+    # user successfully authenticates, /callback will not be able to resolve
+    # the original client's API key. We use that API key to store their token
+    # and (later) their default workspace. This fixes that by creating a
+    # table mapping access keys to `state_id`s.
+    #
+    # This introduces a security vulnerability where someone can change
+    # another user's Slack token by invoking
+    # /callback (a public method, as required by Slack OAuth) with a correct
+    # state ID. We will need to fix that at some point.
+    def self.associate_access_key_to_state_id!(context:, state_id:)
+      begin
+        access_key = self.get_access_key_from_context(context)
+      rescue
+        puts "WARN: Unable to get access key from context while trying to associate \
+access key with state."
+        return false
+      end
+
+      association = SlackAuthState.new(state_id: state_id,
+                                       access_key: access_key)
+      association.save
+      return true
+    end
+
+    # Gets an access key from a given state ID
+    def self.get_access_key_from_state(context:, state_id:)
+    end
   end
 end

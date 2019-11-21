@@ -4,7 +4,13 @@ require 'ostruct'
 describe "Handling fucking Slack OAuth" do
   context "Not authenticated yet" do
     it "Should give the user an auth init prompt without providing a workspace", :unit do
+      Helpers::Aws::DynamoDBLocal.drop_tables!
       expect(SecureRandom).to receive(:hex).and_return('fake-state-id')
+      fake_context = JSON.parse({
+        identity: {
+          apiKey: 'fake-key'
+        }
+      }.to_json)
       fake_event = JSON.parse({
         queryStringParameters: {
           workspace: 'fake'
@@ -27,12 +33,19 @@ state=fake-state-id"
         body: { message: expected_message }.to_json
       }
       expect(SlackAPI::Auth::begin_authentication_flow(fake_event,
-                                                      client_id: 'fake'))
+                                                       fake_context,
+                                                       client_id: 'fake'))
         .to eq expected_response
     end
 
     it "Should give the user an auth init prompt when a workspace is provided", :unit do
+      Helpers::Aws::DynamoDBLocal.drop_tables!
       expect(SecureRandom).to receive(:hex).and_return('fake-state-id')
+      fake_context = JSON.parse({
+        identity: {
+          apiKey: 'fake-key'
+        }
+      }.to_json)
       fake_event = JSON.parse({
         requestContext: {
           path: '/develop/auth'
@@ -52,7 +65,8 @@ state=fake-state-id"
         body: { message: expected_message }.to_json
       }
       expect(SlackAPI::Auth::begin_authentication_flow(fake_event,
-                                                      client_id: 'fake'))
+                                                       fake_context,
+                                                       client_id: 'fake'))
         .to eq expected_response
     end
   end
