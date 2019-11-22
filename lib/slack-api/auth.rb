@@ -33,7 +33,7 @@ module SlackAPI
 =begin
     Handle Slack OAuth callbacks.
 =end
-    def self.handle_callback(event, context)
+    def self.handle_callback(event)
       if !self.configure_aws!
         return SlackAPI::AWSHelpers::APIGateway.error(
           message: 'Please set APP_AWS_ACCESS_KEY and APP_AWS_SECRET_KEY')
@@ -82,7 +82,7 @@ module SlackAPI
 =begin
     Provide a first step for the authentication flow.
 =end
-    def self.begin_authentication_flow(event, context, client_id:)
+    def self.begin_authentication_flow(event, client_id:)
       if !self.configure_aws!
         return SlackAPI::AWSHelpers::APIGateway.error(
           message: 'Please set APP_AWS_ACCESS_KEY and APP_AWS_SECRET_KEY')
@@ -104,7 +104,7 @@ module SlackAPI
       ].join '&'
       message = "You will need to authenticate into Slack first; click on or \
 copy/paste this URL to get started: #{slack_authorization_uri}"
-      if !self.associate_access_key_to_state_id!(context: context,
+      if !self.associate_access_key_to_state_id!(event: event,
                                                  state_id: state_id)
         return SlackAPI::AWSHelpers::APIGateway.error(
           message: "Couldn't map state to access key.")
@@ -113,8 +113,12 @@ copy/paste this URL to get started: #{slack_authorization_uri}"
     end
 
     # Retrives a Slack OAuth token from a API Gateway key
-    def self.get_slack_token(context:)
-      access_key = self.get_access_key_from_context(context)
+    def self.get_slack_token(event:)
+      if !self.configure_aws!
+        return SlackAPI::AWSHelpers::APIGateway.error(
+          message: 'Please set APP_AWS_ACCESS_KEY and APP_AWS_SECRET_KEY')
+      end
+      access_key = self.get_access_key_from_event(event)
       if access_key.nil?
         return SlackAPI::AWSHelpers::APIGateway.error(message: 'Access key missing.')
       end
@@ -140,8 +144,8 @@ copy/paste this URL to get started: #{slack_authorization_uri}"
       SecureRandom.hex
     end
 
-    def self.get_access_key_from_context(context)
-      context['identity']['apiKey']
+    def self.get_access_key_from_event(event)
+      event['requestContext']['identity']['apiKey']
     end
 
     def self.get_slack_token_from_access_key(access_key)
@@ -162,6 +166,10 @@ copy/paste this URL to get started: #{slack_authorization_uri}"
                                  slack_token: slack_token)
         mapping.save
         return true
+      rescue Dynamoid::Errors::ConditionalCheckFailedException
+        puts "WARN: This access key already has a Slack token. We will check for \
+existing tokens and provide a refresh mechanism in a future commit."
+        return true
       rescue Exception => e
         puts "ERROR: We weren't able to save this token: #{e}"
         return false
@@ -178,19 +186,24 @@ copy/paste this URL to get started: #{slack_authorization_uri}"
     # another user's Slack token by invoking
     # /callback (a public method, as required by Slack OAuth) with a correct
     # state ID. We will need to fix that at some point.
-    def self.associate_access_key_to_state_id!(context:, state_id:)
+    def self.associate_access_key_to_state_id!(event:, state_id:)
       begin
-        access_key = self.get_access_key_from_context(context)
+        access_key = self.get_access_key_from_event(event)
       rescue
         puts "WARN: Unable to get access key from context while trying to associate \
 access key with state."
         return false
       end
 
-      association = SlackAuthState.new(state_id: state_id,
-                                       access_key: access_key)
-      association.save
-      return true
+      begin
+        association = SlackAuthState.new(state_id: state_id,
+                                         access_key: access_key)
+        association.save
+        return true
+      rescue Exception => e
+        puts "ERROR: Unable to save auth state: #{e}"
+        return false
+      end
     end
 
     # Gets an access key from a given state ID

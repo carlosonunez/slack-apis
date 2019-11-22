@@ -38,13 +38,20 @@ redirect_uri=#{$api_gateway_url}/callback&state=[a-zA-Z0-9]{32}}
       fill_in "password", with: ENV['SLACK_SANDBOX_ACCOUNT_PASSWORD']
       click_button "signin_btn"
       click_button "Allow"
-      expect(page.html).to match(/status: "ok"/)
+
+
+      # Weird bug with Capybara where it wraps JSON in a HTML block.
+      expected_response = "<html><head></head><body>\
+<pre style=\"word-wrap: break-word; white-space: pre-wrap;\">\
+{\"status\":\"ok\"}\
+</pre></body></html>"
+      expect(page.html).to match expected_response
     end
   end
 
   context "Step 3" do
     it "Should provide me with a token", :integration do
-      response = HTTParty.get("#{@api_gateway_url}/getToken", {
+      response = HTTParty.get("#{$api_gateway_url}/getToken", {
         headers: { 'x-api-key': $test_api_key }
       })
       expect(response.code.to_i).to eq 200

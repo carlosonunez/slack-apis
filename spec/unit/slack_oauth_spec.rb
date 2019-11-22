@@ -5,12 +5,14 @@ describe "Slack OAuth" do
   context 'Handling state associations' do
     it "Should save access keys with state IDs", :unit do
       Helpers::Aws::DynamoDBLocal.drop_tables!
-      fake_context = JSON.parse({
-        identity: {
-          apiKey: 'fake-key'
+      fake_event = JSON.parse({
+        requestContext: {
+          identity: {
+            apiKey: 'fake-key'
+          }
         }
       }.to_json)
-      SlackAPI::Auth.associate_access_key_to_state_id!(context: fake_context,
+      SlackAPI::Auth.associate_access_key_to_state_id!(event: fake_event,
                                                        state_id: 'fake-state-id')
       expect(SlackAPI::Auth.get_access_key_from_state(state_id: 'fake-state-id'))
         .to eq 'fake-key'
@@ -20,22 +22,26 @@ describe "Slack OAuth" do
   context 'Handling tokens' do
     it "Should give me an error message Retrieving tokens while not authenticated", :unit do
       Helpers::Aws::DynamoDBLocal.drop_tables!
-      fake_context = JSON.parse({
-        identity: {
-          apiKey: 'fake-key'
+      fake_event = JSON.parse({
+        requestContext: {
+          identity: {
+            apiKey: 'fake-key'
+          }
         }
       }.to_json)
       expected_response = {
         statusCode: 404,
         body: { status: 'error', message: 'No token exists for this access key.' }.to_json
       }
-      expect(SlackAPI::Auth::get_slack_token(context: fake_context)).to eq expected_response
+      expect(SlackAPI::Auth::get_slack_token(event: fake_event)).to eq expected_response
     end
 
     it "Should persist tokens with their associated API keys", :unit do
-      fake_context = JSON.parse({
-        identity: {
-          apiKey: 'fake-key'
+      fake_event = JSON.parse({
+        requestContext: {
+          identity: {
+            apiKey: 'fake-key'
+          }
         }
       }.to_json)
       expected_get_response = {
@@ -44,24 +50,22 @@ describe "Slack OAuth" do
       }
       expect(SlackAPI::Auth::put_slack_token(access_key: 'fake-key',
                                              slack_token: 'fake')).to be true
-      expect(SlackAPI::Auth::get_slack_token(context: fake_context)).to eq expected_get_response
+      expect(SlackAPI::Auth::get_slack_token(event: fake_event)).to eq expected_get_response
     end
   end
   context "We aren't authenticated yet" do
     it "Should give the user an auth init prompt without providing a workspace", :unit do
       Helpers::Aws::DynamoDBLocal.drop_tables!
       expect(SecureRandom).to receive(:hex).and_return('fake-state-id')
-      fake_context = JSON.parse({
-        identity: {
-          apiKey: 'fake-key'
-        }
-      }.to_json)
       fake_event = JSON.parse({
         queryStringParameters: {
           workspace: 'fake'
         },
         requestContext: {
-          path: '/develop/auth'
+          path: '/develop/auth',
+          identity: {
+            apiKey: 'fake-key'
+          }
         },
         headers: {
           Host: 'example.fake'
@@ -78,7 +82,6 @@ state=fake-state-id"
         body: { status: 'ok', message: expected_message }.to_json
       }
       expect(SlackAPI::Auth::begin_authentication_flow(fake_event,
-                                                       fake_context,
                                                        client_id: 'fake'))
         .to eq expected_response
       expect(SlackAPI::Auth.get_access_key_from_state(state_id: 'fake-state-id'))
@@ -88,14 +91,12 @@ state=fake-state-id"
     it "Should give the user an auth init prompt when a workspace is provided", :unit do
       Helpers::Aws::DynamoDBLocal.drop_tables!
       expect(SecureRandom).to receive(:hex).and_return('fake-state-id')
-      fake_context = JSON.parse({
-        identity: {
-          apiKey: 'fake-key'
-        }
-      }.to_json)
       fake_event = JSON.parse({
         requestContext: {
-          path: '/develop/auth'
+          path: '/develop/auth',
+          identity: {
+            apiKey: 'fake-key'
+          }
         },
         headers: {
           Host: 'example.fake'
@@ -112,7 +113,6 @@ state=fake-state-id"
         body: { status: 'ok', message: expected_message }.to_json
       }
       expect(SlackAPI::Auth::begin_authentication_flow(fake_event,
-                                                       fake_context,
                                                        client_id: 'fake'))
         .to eq expected_response
       expect(SlackAPI::Auth.get_access_key_from_state(state_id: 'fake-state-id'))
@@ -126,14 +126,12 @@ state=fake-state-id"
         statusCode: 200,
         body: { status: 'ok' }.to_json
       }
-      fake_context = JSON.parse({
-        identity: {
-          apiKey: 'fake-key'
-        }
-      }.to_json)
       fake_event = JSON.parse({
         requestContext: {
-          path: '/develop/callback'
+          path: '/develop/callback',
+          identity: {
+            apiKey: 'fake-key'
+          }
         },
         queryStringParameters: {
           code: 'fake-code',
@@ -150,7 +148,7 @@ state=fake-state-id"
           scope: 'read'
         }.to_json))
       allow(SlackAPI::Auth).to receive(:get_access_key_from_state).and_return('fake-key')
-      expect(SlackAPI::Auth::handle_callback(fake_event, fake_context)).to eq expected_response
+      expect(SlackAPI::Auth::handle_callback(fake_event)).to eq expected_response
     end
   end
 end

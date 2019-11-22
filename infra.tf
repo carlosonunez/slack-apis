@@ -57,6 +57,7 @@ resource "aws_iam_user_policy" "app" {
           "s3:ListObjects",
           "dynamodb:ListTables",
           "dynamodb:DescribeTable",
+          "dynamodb:CreateTable",
           "dynamodb:Query",
           "dynamodb:GetItem",
           "dynamodb:BatchGetItem",
