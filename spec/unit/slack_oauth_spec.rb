@@ -81,6 +81,8 @@ state=fake-state-id"
                                                        fake_context,
                                                        client_id: 'fake'))
         .to eq expected_response
+      expect(SlackAPI::Auth.get_access_key_from_state(state_id: 'fake-state-id'))
+        .to eq 'fake-key'
     end
 
     it "Should give the user an auth init prompt when a workspace is provided", :unit do
@@ -113,6 +115,8 @@ state=fake-state-id"
                                                        fake_context,
                                                        client_id: 'fake'))
         .to eq expected_response
+      expect(SlackAPI::Auth.get_access_key_from_state(state_id: 'fake-state-id'))
+        .to eq 'fake-key'
     end
   end
 
