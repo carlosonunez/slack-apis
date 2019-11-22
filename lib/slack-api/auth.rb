@@ -104,14 +104,12 @@ module SlackAPI
       ].join '&'
       message = "You will need to authenticate into Slack first; click on or \
 copy/paste this URL to get started: #{slack_authorization_uri}"
-      begin
-        self.associate_access_key_to_state_id!(context: context,
-                                               state_id: state_id)
-        SlackAPI::AWSHelpers::APIGateway.ok(message: message)
-      rescue Exception => e
-        SlackAPI::AWSHelpers::APIGateway.error(
-          message: "Couldn't map state to access key: #{e}")
+      if !self.associate_access_key_to_state_id!(context: context,
+                                                 state_id: state_id)
+        return SlackAPI::AWSHelpers::APIGateway.error(
+          message: "Couldn't map state to access key.")
       end
+      return SlackAPI::AWSHelpers::APIGateway.ok(message: message)
     end
 
     # Retrives a Slack OAuth token from a API Gateway key
