@@ -17,8 +17,8 @@ https://#{ENV['SLACK_WORKSPACE_NAME']}.slack.com\
 /oauth/authorize\?client_id=#{ENV['SLACK_APP_CLIENT_ID']}&\
 scope=users.profile:read,users.profile:write&\
 redirect_uri=#{$api_gateway_url}/callback&state=[a-zA-Z0-9]{32}}
-      expect(response.code.to_i).to eq 200
       expect(JSON.parse(response.body)['message']).to match expected_message_re
+      expect(response.code.to_i).to eq 200
     end
   end
 
