@@ -41,6 +41,8 @@ functions:
     environment:
       GEM_PATH: vendor/bundle
       SLACK_APP_CLIENT_ID: ${env:SLACK_APP_CLIENT_ID}
+      APP_AWS_ACCESS_KEY_ID: ${file(./secrets/app_account_ak)}
+      APP_AWS_SECRET_ACCESS_KEY: ${file(./secrets/app_account_sk)}
     events:
       - http:
           path: auth
@@ -66,6 +68,8 @@ functions:
     timeout: 30
     environment:
       GEM_PATH: vendor/bundle
+      APP_AWS_ACCESS_KEY_ID: ${file(./secrets/app_account_ak)}
+      APP_AWS_SECRET_ACCESS_KEY: ${file(./secrets/app_account_sk)}
     events:
       - http:
           path: getToken
