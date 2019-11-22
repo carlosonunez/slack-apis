@@ -11,8 +11,8 @@ describe "Slack OAuth" do
       response = HTTParty.get(uri, {
         headers: { 'x-api-key': $test_api_key }
       })
-      expected_message_re = %r{You will need to authenticate into Slack first. \
-To do so, click on or copy/paste the link below, then go to /finish_auth with the code given once done: \
+      expected_message_re = %r{You will need to authenticate into Slack first; \
+click on or copy/paste this URL to get started: \
 https://#{ENV['SLACK_WORKSPACE_NAME']}.slack.com\
 /oauth/authorize\?client_id=#{ENV['SLACK_APP_CLIENT_ID']}&\
 scope=users.profile:read,users.profile:write&\
@@ -31,7 +31,7 @@ redirect_uri=#{$api_gateway_url}/callback&state=[a-zA-Z0-9]{32}}
         headers: { 'x-api-key': $test_api_key }
       })
       message = JSON.parse(response.body)['message']
-      auth_url = message.match('^.*once done: (http.*)$').captures[0]
+      auth_url = message.match('^.*get started: (http.*)$').captures[0]
 
       visit(auth_url)
       fill_in "email", with: ENV['SLACK_SANDBOX_ACCOUNT_EMAIL']
