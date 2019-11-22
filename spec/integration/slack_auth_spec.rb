@@ -38,7 +38,7 @@ redirect_uri=#{$api_gateway_url}/callback&state=[a-zA-Z0-9]{32}}
       fill_in "password", with: ENV['SLACK_SANDBOX_ACCOUNT_PASSWORD']
       click_button "signin_btn"
       click_button "Allow"
-      expect(page).to have_context("status: \"ok\"")
+      expect(page.html).to match(/status: "ok"/)
     end
   end
 

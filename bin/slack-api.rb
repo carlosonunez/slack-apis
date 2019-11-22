@@ -19,7 +19,7 @@ end
 
 # Slack needs a callback URI to send its code too. This is that callback.
 def handle_callback(event: {}, context: {})
-  SlackAPI::Auth.handle_callback(event)
+  SlackAPI::Auth.handle_callback(event, context)
 end
 
 # health check. don't need request here...at least not yet.

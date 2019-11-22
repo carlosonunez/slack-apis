@@ -133,7 +133,7 @@ state=fake-state-id"
       }.to_json)
       fake_event = JSON.parse({
         requestContext: {
-          path: '/develop/final_auth'
+          path: '/develop/callback'
         },
         queryStringParameters: {
           code: 'fake-code',

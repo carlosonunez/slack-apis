@@ -7,7 +7,6 @@ require 'dynamoid'
 
 module SlackAPI
   module Auth
-
     class SlackToken
       Dynamoid.configure do |config|
         config.namespace = "slack_auth"
@@ -35,6 +34,10 @@ module SlackAPI
     Handle Slack OAuth callbacks.
 =end
     def self.handle_callback(event, context)
+      if !self.configure_aws!
+        return SlackAPI::AWSHelpers::APIGateway.error(
+          message: 'Please set APP_AWS_ACCESS_KEY and APP_AWS_SECRET_KEY')
+      end
       parameters = event['queryStringParameters']
       code = parameters['code']
       state_id = parameters['state']
@@ -46,7 +49,8 @@ module SlackAPI
         return SlackAPI::AWSHelpers::APIGateway.error(
           message: "Slack didn't send a code or state_id upon calling back.")
       else
-        callback_url = SlackAPI::AWSHelpers::APIGateway.get_endpoint(event) + '/callback'
+        callback_url = 'https://' + SlackAPI::AWSHelpers::APIGateway.get_endpoint(event) + \
+          event['requestContext']['path']
         token_response = SlackAPI::Slack::OAuth.access(client_id: ENV['SLACK_APP_CLIENT_ID'],
                                                        client_secret: ENV['SLACK_APP_CLIENT_SECRET'],
                                                        redirect_uri: callback_url,
@@ -79,6 +83,10 @@ module SlackAPI
     Provide a first step for the authentication flow.
 =end
     def self.begin_authentication_flow(event, context, client_id:)
+      if !self.configure_aws!
+        return SlackAPI::AWSHelpers::APIGateway.error(
+          message: 'Please set APP_AWS_ACCESS_KEY and APP_AWS_SECRET_KEY')
+      end
       scopes_csv = ENV['SLACK_APP_CLIENT_SCOPES'] || "users.profile:read,users.profile:write"
       redirect_uri = "https://#{SlackAPI::AWSHelpers::APIGateway.get_endpoint(event)}/callback"
       workspace = self.get_workspace(event)
@@ -196,6 +204,21 @@ access key with state."
       rescue Aws::DynamoDB::Errors::ResourceNotFoundException
         puts "WARN: State associations table not created yet."
         return nil
+      end
+    end
+
+    def self.configure_aws!
+      if ENV['APP_AWS_SECRET_ACCESS_KEY'].nil? or ENV['APP_AWS_ACCESS_KEY_ID'].nil?
+        return false
+      end
+      begin
+        ::Aws.config.update(
+          credentials: ::Aws::Credentials.new(ENV['APP_AWS_ACCESS_KEY_ID'],
+                                              ENV['APP_AWS_SECRET_ACCESS_KEY']))
+        return true
+      rescue Exception => e
+        puts "ERROR: Unable to configure Aws: #{e}"
+        return false
       end
     end
   end

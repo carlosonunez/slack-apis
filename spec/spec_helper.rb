@@ -16,6 +16,8 @@ end
 RSpec.configure do |config|
   config.include Capybara::DSL, :integration => true
   config.before(:all, :unit => true) do
+    ENV['APP_AWS_ACCESS_KEY_ID'] = 'fake'
+    ENV['APP_AWS_SECRET_ACCESS_KEY'] = 'fake'
     if !$dynamodb_mocking_started
       Helpers::Aws::DynamoDBLocal.start_mocking!
       puts "Waiting 60 seconds for local DynamoDB instance to become availble."
