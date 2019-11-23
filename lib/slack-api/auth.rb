@@ -87,7 +87,7 @@ module SlackAPI
         return SlackAPI::AWSHelpers::APIGateway.error(
           message: 'Please set APP_AWS_ACCESS_KEY and APP_AWS_SECRET_KEY')
       end
-      if self.has_token? event: event
+      if !self.reauthenticate?(event: event) and self.has_token? event: event
         return SlackAPI::AWSHelpers::APIGateway.ok(message: 'You already have a token.')
       end
       scopes_csv = ENV['SLACK_APP_CLIENT_SCOPES'] || "users.profile:read,users.profile:write"
@@ -189,6 +189,10 @@ existing tokens and provide a refresh mechanism in a future commit."
         puts "WARN: Error while querying for an existing token; beware stranger tings: #{e}"
         return false
       end
+    end
+
+    def self.reauthenticate?(event:)
+      event.dig('queryStringParameters', 'reauthenticate') == true
     end
 
     # Because the Slack OAuth service invokes /callback after the

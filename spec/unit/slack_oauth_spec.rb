@@ -141,6 +141,40 @@ state=fake-state-id"
                                                       client_id: 'fake'))
           .to eq expected_response
     end
+    it "Should avoid short-circuiting if we tell it to", :unit do
+        Helpers::Aws::DynamoDBLocal.drop_tables!
+        expect(SecureRandom).to receive(:hex).and_return('fake-state-id')
+        SlackAPI::Auth.put_slack_token(access_key: 'fake-key-again', slack_token: 'fake')
+        fake_event = JSON.parse({
+          requestContext: {
+            path: '/develop/auth',
+            identity: {
+              apiKey: 'fake-key-again'
+            }
+          },
+          queryStringParameters: {
+            reauthenticate: true
+          },
+          headers: {
+            Host: 'example.fake'
+          }
+        }.to_json)
+        expected_message = "You will need to authenticate into Slack first; \
+click on or copy/paste this URL to get started: \
+https://slack.com/oauth/authorize?client_id=fake&\
+scope=users.profile:read,users.profile:write&\
+redirect_uri=https://example.fake/develop/callback&\
+state=fake-state-id"
+        expected_response = {
+          statusCode: 200,
+          body: { status: 'ok', message: expected_message }.to_json
+        }
+        expect(SlackAPI::Auth::begin_authentication_flow(fake_event,
+                                                         client_id: 'fake'))
+          .to eq expected_response
+        expect(SlackAPI::Auth.get_access_key_from_state(state_id: 'fake-state-id'))
+          .to eq 'fake-key-again'
+    end
   end
 
   context "We've been authenticated" do
