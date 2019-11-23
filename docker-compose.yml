@@ -20,6 +20,7 @@ services:
   ruby:
     build:
       context: .
+      dockerfile: ruby.Dockerfile
       args:
         ENVIRONMENT: test
     env_file: .env
