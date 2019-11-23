@@ -1,7 +1,7 @@
 #!/usr/bin/env ruby
 $LOAD_PATH.unshift('./lib')
 if Dir.exist? './vendor'
-  $LOAD_PATH.unshift('./vendor/bundle/gems/**/lib')
+  $LOAD_PATH.unshift('./vendor/bundle/ruby/**gems/**/lib')
 end
 
 require 'slack-api'
