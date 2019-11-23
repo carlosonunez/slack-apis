@@ -34,7 +34,7 @@ data "aws_route53_zone" "app_dns_zone" {
 }
 
 resource "aws_s3_bucket" "serverless_bucket" {
-  bucket = "var.serverless_bucket_name"
+  bucket = "${var.serverless_bucket_name}"
 }
 
 resource "aws_iam_user" "app" {
@@ -42,12 +42,12 @@ resource "aws_iam_user" "app" {
 }
 
 resource "aws_iam_access_key" "app" {
-  user = "aws_iam_user.app.name"
+  user = "${aws_iam_user.app.name}"
 }
 
 resource "aws_iam_user_policy" "app" {
   name = "slack_api_app_account_policy"
-  user = "aws_iam_user.app.name"
+  user = "${aws_iam_user.app.name}"
   policy = <<EOF
 {
   "Version": "2012-10-17",
@@ -75,7 +75,7 @@ EOF
 }
 
 resource "aws_acm_certificate" "app_cert" {
-  count = "var.no_certs == "true" ? 0 : 1"
+  count = "${var.no_certs == "true" ? 0 : 1 }"
   provider = aws.aws_acm_cert_region_for_edge
   domain_name = "${var.domain_path}.${var.domain_tld}"
   validation_method = "DNS"
@@ -86,18 +86,18 @@ resource "aws_acm_certificate" "app_cert" {
 
 resource "aws_route53_record" "app_cert_validation_cname" {
   provider = aws.aws_acm_cert_region_for_edge
-  count   = "var.no_certs == "true" ? 0 : 1"
-  name    = "aws_acm_certificate.app_cert.0.domain_validation_options.0.resource_record_name"
-  type    = "aws_acm_certificate.app_cert.0.domain_validation_options.0.resource_record_type"
-  zone_id = "data.aws_route53_zone.app_dns_zone.id"
-  records = ["aws_acm_certificate.app_cert.0.domain_validation_options.0.resource_record_value"]
+  count   = "${var.no_certs == "true" ? 0 : 1 }"
+  name    = "${aws_acm_certificate.app_cert.0.domain_validation_options.0.resource_record_name}"
+  type    = "${aws_acm_certificate.app_cert.0.domain_validation_options.0.resource_record_type}"
+  zone_id = "${data.aws_route53_zone.app_dns_zone.id}"
+  records = ["${aws_acm_certificate.app_cert.0.domain_validation_options.0.resource_record_value}"]
   ttl     = 60
 }
 
 resource "aws_acm_certificate_validation" "app_cert" {
   provider = aws.aws_acm_cert_region_for_edge
-  count = "var.no_certs == "true" ? 0 : 1 "
-  certificate_arn         = "aws_acm_certificate.app_cert.0.arn"
+  count = "${var.no_certs == "true" ? 0 : 1 }"
+  certificate_arn         = "${aws_acm_certificate.app_cert.0.arn}"
   validation_record_fqdns = ["${aws_route53_record.app_cert_validation_cname.0.fqdn}"]
 }
 
