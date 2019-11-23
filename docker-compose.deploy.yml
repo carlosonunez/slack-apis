@@ -11,6 +11,8 @@ services:
   terraform:
     image: hashicorp/terraform
     env_file: .env
+    environment:
+      - TF_CLI_ARGS_destroy="-force"
     volumes:
       - $PWD:/app
     working_dir: /app
