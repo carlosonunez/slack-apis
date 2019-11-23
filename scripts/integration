@@ -1,6 +1,13 @@
 #!/usr/bin/env bash
 KEEP_INTEGRATION_ENVIRONMENT_UP="${KEEP_INTEGRATION_ENVIRONMENT_UP:-false}"
+DONT_DEPLOY="${DONT_DEPLOY:-false}"
 >&2 echo "INFO: Staging integration environment."
+docker-compose up -d selenium
+
+if [ "$DONT_DEPLOY" != "true" ]
+then
+  scripts/deploy
+fi
 scripts/deploy && \
   for stage in integration-setup integration integration-teardown
   do

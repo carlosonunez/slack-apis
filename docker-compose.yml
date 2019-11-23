@@ -51,18 +51,6 @@ services:
       - --fail-fast
       - --format
       - documentation
-  integration-setup:
-    extends: serverless
-    entrypoint: bash
-    command:
-      - -c
-      - ./scripts/integration_setup.sh
-  integration-teardown:
-    extends: serverless
-    command:
-      - remove
-      - --stage
-      - develop
   integration:
     extends: ruby
     entrypoint: rspec
@@ -79,3 +67,15 @@ services:
       - --fail-fast
       - --format
       - documentation
+  integration-setup:
+    extends: serverless
+    entrypoint: bash
+    command:
+      - -c
+      - ./scripts/integration_setup.sh
+  integration-teardown:
+    extends: serverless
+    entrypoint: bash
+    command:
+      - -c
+      - ./scripts/integration_teardown.sh
