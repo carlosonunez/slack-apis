@@ -118,6 +118,29 @@ state=fake-state-id"
       expect(SlackAPI::Auth.get_access_key_from_state(state_id: 'fake-state-id'))
         .to eq 'fake-key'
     end
+
+    it "Should short-circuit this process if the user already has a token", :unit do
+      Helpers::Aws::DynamoDBLocal.drop_tables!
+      SlackAPI::Auth.put_slack_token(access_key: 'fake-key', slack_token: 'fake')
+      fake_event = JSON.parse({
+        requestContext: {
+          path: '/develop/auth',
+          identity: {
+            apiKey: 'fake-key'
+          }
+        },
+        headers: {
+          Host: 'example.fake'
+        }
+      }.to_json)
+      expected_response = {
+        statusCode: 200,
+        body: { status: 'ok', message: 'You already have a token.' }.to_json
+      }
+      expect(SlackAPI::Auth.begin_authentication_flow(fake_event,
+                                                      client_id: 'fake'))
+          .to eq expected_response
+    end
   end
 
   context "We've been authenticated" do

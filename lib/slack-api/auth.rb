@@ -87,6 +87,9 @@ module SlackAPI
         return SlackAPI::AWSHelpers::APIGateway.error(
           message: 'Please set APP_AWS_ACCESS_KEY and APP_AWS_SECRET_KEY')
       end
+      if self.has_token? event: event
+        return SlackAPI::AWSHelpers::APIGateway.ok(message: 'You already have a token.')
+      end
       scopes_csv = ENV['SLACK_APP_CLIENT_SCOPES'] || "users.profile:read,users.profile:write"
       redirect_uri = "https://#{SlackAPI::AWSHelpers::APIGateway.get_endpoint(event)}/callback"
       workspace = self.get_workspace(event)
@@ -172,6 +175,18 @@ existing tokens and provide a refresh mechanism in a future commit."
         return true
       rescue Exception => e
         puts "ERROR: We weren't able to save this token: #{e}"
+        return false
+      end
+    end
+
+    def self.has_token?(event:)
+      begin
+        access_key = self.get_access_key_from_event(event)
+        results = SlackToken.where(access_key: access_key)
+        return nil if results.nil? or results.count == 0
+        !results.first.slack_token.nil?
+      rescue Exception => e
+        puts "WARN: Error while querying for an existing token; beware stranger tings: #{e}"
         return false
       end
     end
