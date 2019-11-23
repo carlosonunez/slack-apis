@@ -36,6 +36,7 @@ services:
   vendor:
     extends: ruby
     volumes:
+      - "$PWD:/app:cached"
       - "$PWD/vendor:/vendor:cached"
       - "$PWD/Gemfile:/Gemfile"
     command:
