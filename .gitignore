@@ -3,3 +3,4 @@
 .serverless
 secrets
 vendor
+Gemfile.lock
