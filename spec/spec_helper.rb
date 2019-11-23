@@ -60,5 +60,16 @@ run 'docker-compose run --rm integration-setup'" \
       )
     end
     Capybara.default_driver = :selenium
+
+    if !$callback_updated
+      if ENV['DISABLE_SLACK_CALLBACK_UPDATING'] != 'true'
+        puts "INFO: Updating Slack callback URIs."
+        if !Helpers::Slack::OAuth.update_callback_uri! \
+          callback_uri: "#{$api_gateway_url}/callback"
+          raise "Unable to update Slack callback URIs; stopping early to prevent later failures."
+        end
+        $callback_updated = true
+      end
+    end
   end
 end
