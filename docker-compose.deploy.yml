@@ -1,24 +1,5 @@
 version: '2.2'
 services:
-  vendor-dependencies:
-    build:
-      context: .
-    entrypoint: sh
-    volumes:
-      - "$PWD/vendor:/vendor"
-    command:
-      - -c
-      - cp -R /usr/local/bundle /vendor
-  vendor-dependencies-from-scratch:
-    build:
-      context: .
-    entrypoint: sh
-    volumes:
-      - "$PWD/vendor:/vendor"
-      - "$PWD/Gemfile:/Gemfile"
-    command:
-      - -c
-      - "bundle install && cp -R /usr/local/bundle /vendor"
   serverless:
     build:
       dockerfile: serverless.Dockerfile

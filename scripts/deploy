@@ -2,15 +2,16 @@
 ENVIRONMENT="${ENVIRONMENT:-test}"
 set -e
 
+docker-compose run --rm vendor
 case "$ENVIRONMENT" in
   test)
-    for stage in vendor-dependencies deploy-serverless-infra-test deploy-serverless-functions-test
+    for stage in deploy-serverless-infra-test deploy-serverless-functions-test
     do
       docker-compose -f docker-compose.deploy.yml run --rm "$stage"
     done
     ;;
   production)
-    for stage in vendor-dependencies deploy-serverless-infra deploy-serverless-domain deploy-serverless-functions
+    for stage in deploy-serverless-infra deploy-serverless-domain deploy-serverless-functions
     do
       docker-compose -f docker-compose.deploy.yml run --rm "$stage"
     done

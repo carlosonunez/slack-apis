@@ -25,12 +25,20 @@ services:
         ENVIRONMENT: test
     env_file: .env
     volumes:
-      - $PWD:/app
+      - $PWD:/app:ro,delegated # fix rspec slowness due to size of vendor dir
     working_dir: /app
     entrypoint: sh
     command:
       - "-c"
       - "not meant to be run with the stack"
+  vendor:
+    extends: ruby
+    volumes:
+      - "$PWD/vendor:/vendor:cached"
+      - "$PWD/Gemfile:/Gemfile"
+    command:
+      - -c
+      - "echo 'INFO: Vendoring dependencies...' && bundle install --without test --path /vendor/bundle"
   unit:
     extends: ruby
     entrypoint: rspec
