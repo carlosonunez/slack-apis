@@ -48,9 +48,6 @@ functions:
           path: auth
           method: get
           private: true
-          request:
-            template:
-              application/json: '{ "apiKey": "$context.identity.apiKey" }'
   callback:
     handler: bin/slack-api.handle_callback
     description: Function that receives Slack OAuth callbacks.
@@ -78,9 +75,6 @@ functions:
           path: getToken
           method: get
           private: true
-          request:
-            template:
-              application/json: '{ "apiKey": "$context.identity.apiKey" }'
   ping:
     handler: bin/slack-api.ping
     description: Healthiness endpoint for APIs.
