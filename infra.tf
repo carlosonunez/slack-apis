@@ -57,7 +57,6 @@ resource "aws_iam_user_policy" "app" {
           "s3:ListObjects",
           "dynamodb:ListTables",
           "dynamodb:DescribeTable",
-          "dynamodb:CreateTable",
           "dynamodb:Query",
           "dynamodb:GetItem",
           "dynamodb:BatchGetItem",
@@ -101,6 +100,35 @@ resource "aws_acm_certificate_validation" "app_cert" {
   validation_record_fqdns = ["${aws_route53_record.app_cert_validation_cname.0.fqdn}"]
 }
 
+resource "aws_dynamodb_table" "state_associations" {
+  name = "slack_auth_tokens"
+  hash_key = "access_key"
+  read_capacity = 2
+  write_capacity = 2
+  attribute {
+    name = "access_key"
+    type = "S"
+  }
+  attribute {
+    name = "slack_key"
+    type = "S"
+  }
+}
+
+resource "aws_dynamodb_table" "slack_tokens" {
+  name = "slack_auth_tokens"
+  hash_key = "state_id"
+  read_capacity = 2
+  write_capacity = 2
+  attribute {
+    name = "access_key"
+    type = "S"
+  }
+  attribute {
+    name = "state_id"
+    type = "S"
+  }
+}
 
 output "app_account_ak" {
   value = "${aws_iam_access_key.app.id}"
