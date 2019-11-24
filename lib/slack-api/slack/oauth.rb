@@ -11,7 +11,9 @@ module SlackAPI
           code: code,
           redirect_uri: redirect_uri
         }
-        SlackAPI::Slack::API.get_from(endpoint: 'oauth.access', params: params)
+        SlackAPI::Slack::API.post_to(endpoint: 'oauth.access',
+                                     content_type: 'application/x-www-formencoded',
+                                     params: params)
       end
     end
   end
