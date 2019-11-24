@@ -157,7 +157,7 @@ copy/paste this URL to get started: #{slack_authorization_uri}"
         return nil if results.count == 0
         results.first.slack_token
       rescue Aws::DynamoDB::Errors::ResourceNotFoundException
-        puts "WARN: Slack tokens table not created yet."
+        SlackAPI.logger.warn("Slack tokens table not created yet.")
         return nil
       end
     end
@@ -174,7 +174,7 @@ copy/paste this URL to get started: #{slack_authorization_uri}"
 existing tokens and provide a refresh mechanism in a future commit."
         return true
       rescue Exception => e
-        puts "ERROR: We weren't able to save this token: #{e}"
+        SlackAPI.logger.error("We weren't able to save this token: #{e}")
         return false
       end
     end
@@ -186,13 +186,13 @@ existing tokens and provide a refresh mechanism in a future commit."
         return nil if results.nil? or results.count == 0
         !results.first.slack_token.nil?
       rescue Exception => e
-        puts "WARN: Error while querying for an existing token; beware stranger tings: #{e}"
+        SlackAPI.logger.warn("Error while querying for an existing token; beware stranger tings: #{e}")
         return false
       end
     end
 
     def self.reauthenticate?(event:)
-      event.dig('queryStringParameters', 'reauthenticate') == true
+      event.dig('queryStringParameters', 'reauthenticate') == 'true'
     end
 
     # Because the Slack OAuth service invokes /callback after the
@@ -220,7 +220,7 @@ access key with state."
         association.save
         return true
       rescue Exception => e
-        puts "ERROR: Unable to save auth state: #{e}"
+        SlackAPI.logger.error("Unable to save auth state: #{e}")
         return false
       end
     end
@@ -232,7 +232,7 @@ access key with state."
         return nil if results.nil? or results.count == 0
         results.first.access_key
       rescue Aws::DynamoDB::Errors::ResourceNotFoundException
-        puts "WARN: State associations table not created yet."
+        SlackAPI.logger.warn("State associations table not created yet.")
         return nil
       end
     end
@@ -247,7 +247,7 @@ access key with state."
                                               ENV['APP_AWS_SECRET_ACCESS_KEY']))
         return true
       rescue Exception => e
-        puts "ERROR: Unable to configure Aws: #{e}"
+        SlackAPI.logger.error("Unable to configure Aws: #{e}")
         return false
       end
     end
