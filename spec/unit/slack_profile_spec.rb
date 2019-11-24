@@ -20,7 +20,8 @@ describe "Slack Profiles" do
             emoji: ':joy:'
           }
         }.to_json)
-        _ = fake_event['queryStringParameters'].delete required_thing
+        fake_event['queryStringParameters'] =
+          fake_event['queryStringParameters'].reject { |key,_| key == required_thing }
         expected_response = {
           statusCode: 422,
           body: {
@@ -28,7 +29,8 @@ describe "Slack Profiles" do
             message: "Parameter required: #{required_thing}"
           }.to_json,
         }
-        expect(SlackAPI::Slack::Profile::Status.set!(event: fake_event)).to eq expected_response
+        expect(SlackAPI::Slack::Profile::Status.set!(fake_event))
+          .to eq expected_response
       end
     end
   end
