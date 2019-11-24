@@ -1,17 +1,17 @@
 require 'httparty'
+require 'slack-api/slack/api'
+
 module SlackAPI
   module Slack
     module Users
-      def get_id(name:, workspace:)
+      def self.get_id(token:)
         begin
-          opts = {
-            headers: { 'Content-Type': 'x-www-formencoded' },
-            query: { token: token }
-          }
-          response = HTTParty.get("https://#{workspace}.slack.com/api/users.identity", opts)
-          json = JSON.parse(response.body)
-          if response.code == 200 and json[:error] == 'ok'
-            return response[:user][:id]
+          response = SlackAPI::Slack::API.get_from(endpoint: 'users.identity',
+                                                   content_type: 'application/x-www-formencoded',
+                                                   token: token)
+          json = JSON.parse(response.body, symbolize_names: true)
+          if response.code == 200 and json[:status] == 'ok'
+            return json[:user][:id]
           end
         rescue Exception => e
           puts "ERROR: Couldn't fetch identity: #{e}"
