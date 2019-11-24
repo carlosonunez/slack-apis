@@ -19,7 +19,6 @@ module SlackAPI
       def self.token_expired?(token:)
         response = SlackAPI::Slack::API.get_from(endpoint: 'auth.test',
                                                  params: { token: token })
-        puts "Response: #{response.body}"
         json = JSON.parse(response.body, symbolize_names: true)
         json[:ok] == false and json[:error] == 'invalid_auth'
       end

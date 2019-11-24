@@ -26,3 +26,8 @@ end
 def ping(event: {}, context: {})
   SlackAPI::Health.ping
 end
+
+# Set profile statuses
+def status_set(event: {}, context: {})
+  SlackAPI::Slack::Profile::Status.set!(event)
+end

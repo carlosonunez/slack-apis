@@ -75,6 +75,19 @@ functions:
           path: getToken
           method: get
           private: true
+  status_set:
+    handler: bin/slack-api.status_set
+    description: Changes the user's status on Slack after authenticating.
+    timeout: 30
+    environment:
+      GEM_PATH: vendor/bundle/ruby/2.5.0
+      APP_AWS_ACCESS_KEY_ID: ${file(./secrets/app_account_ak)}
+      APP_AWS_SECRET_ACCESS_KEY: ${file(./secrets/app_account_sk)}
+    events:
+      - http:
+          path: status
+          method: post
+          private: true
   ping:
     handler: bin/slack-api.ping
     description: Healthiness endpoint for APIs.
