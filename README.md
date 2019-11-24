@@ -3,22 +3,12 @@
 A collection of Slack functions that I use for various things. These are needed
 ever since Slack deprecated token-based authentication in favor of OAuth 2.0.
 
-## How to run
+This is designed to run entirely in AWS Lambda.
 
-### Local
+## How to deploy
 
-1. Start the webserver: `docker-compose run --rm webserver`
-2. Run your function against `localhost`
-
-   ```sh
-   curl -X PUT --data '{ "status": "Hello" }' http://localhost/v1/update_status?key=$key
-   ```
-
-## Testing
-
-**NOTE**: You need to have Docker and Docker Compose installed first.
-
-1. Run unit tests with: `scripts/unit`
-2. Run against a live URL with: `scripts/integration`.
-   This should cost nothing (the first 1M calls to Lambda are free).
-   It takes about two minutes for these tests to run (tested with ~4Mbit bandwdith).
+1. Create a `.env` from `.env.example` and fill it out.
+2. Source common bash aliases: `source bash_aliases`
+3. Run unit tests: `unit`
+4. Run integration tests (uses AWS; should be free): `integration`
+5. Deploy to your AWS account: `ENVIRONMENT=production deploy`
