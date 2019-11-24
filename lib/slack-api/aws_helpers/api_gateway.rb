@@ -3,6 +3,11 @@ require 'json'
 module SlackAPI
   module AWSHelpers
     module APIGateway
+      module Events
+        def self.get_param(event:,param:)
+          event.dig('queryStringParameters', param)
+        end
+      end
 =begin
       Retrieves the endpoint from a request, optionally with a part of its path removed.
 =end
@@ -70,7 +75,6 @@ module SlackAPI
       def self.return_422(body:)
         self.send_response(code: 422, payload: { status: 'error', message: body })
       end
-
     end
   end
 end

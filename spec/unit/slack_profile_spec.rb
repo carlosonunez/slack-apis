@@ -1,12 +1,47 @@
 require 'spec_helper'
 
 describe "Slack Profiles" do
-  # We require a specific user ID due to the limited scopes this external
-  # bot will have and it likely needing to be used against Slack workspaces
-  # that are subject to GDPR.
+  context 'Validation' do
+    %w(user workspace).each do |required_thing|
+      it "Should error if #{required_thing} is not set", :unit do
+        fake_event = JSON.parse({
+          requestContext: {
+            identity: {
+              apiKey: 'fake-key'
+            }
+          },
+          queryStringParameters: {
+            workspace: 'fake-workspace',
+            user: 'fake-user',
+            token: 'fake-token'
+          },
+          body: {
+            status: 'fake-status',
+            emoji: ':joy:'
+          }
+        }.to_json)
+        _ = fake_event['queryStringParameters'].delete required_thing
+        expected_response = {
+          statusCode: 422,
+          body: {
+            status: 'error',
+            message: "Parameter required: #{required_thing}"
+          }.to_json,
+        }
+        expect(SlackAPI::Slack::Profile::Status.set!(event: fake_event)).to eq expected_response
+      end
+    end
+  end
+
   it "Should set the user's profile", :wip do
     fake_event = JSON.parse({
+      requestContext: {
+        identity: {
+          apiKey: 'fake-key'
+        }
+      },
       queryStringParameters: {
+        workspace: 'fake-workspace',
         user: 'fake-user',
         token: 'fake-token'
       },
