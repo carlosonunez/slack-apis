@@ -26,4 +26,38 @@ describe "Slack OAuth methods" do
       expect(access_token).to eq 'fake-token'
     end
   end
+
+  context "Validating tokens" do
+    it "Should tell me when tokens are expired", :unit do
+      url_to_mock = 'https://slack.com/api/auth.test'
+      request_opts = {
+        headers: { 'Content-Type': 'application/json' },
+        query: {
+          token: 'fake-token'
+        }
+      }
+      mocked_response_body = {
+        ok: false,
+        error: 'invalid_auth'
+      }.to_json
+      allow(HTTParty).to receive(:get)
+        .with(url_to_mock, request_opts)
+        .and_return(double(HTTParty::Response, body: mocked_response_body))
+      expect(SlackAPI::Slack::OAuth.token_expired?(token: 'fake-token')).to be true
+    end
+
+    it "Should tell me when tokens are not expired", :unit do
+      url_to_mock = 'https://slack.com/api/auth.test'
+      request_opts = {
+        headers: { 'Content-Type': 'application/json' },
+        query: {
+          token: 'fake-token'
+        }
+      }
+      allow(HTTParty).to receive(:get)
+        .with(url_to_mock, request_opts)
+        .and_return(double(HTTParty::Response, body: { ok: true }.to_json))
+      expect(SlackAPI::Slack::OAuth.token_expired?(token: 'fake-token')).to be false
+    end
+  end
 end
