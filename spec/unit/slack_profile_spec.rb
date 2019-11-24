@@ -46,7 +46,10 @@ describe "Slack Profiles" do
         message: 'Token expired'
       }.to_json,
     }
-    allow(SlackAPI::Auth).to receive(:get_slack_token).and_return 'fake-token'
+    allow(SlackAPI::Auth).to receive(:get_slack_token).and_return({
+      statusCode: 200,
+      body: { token: 'fake-token' }.to_json
+    })
     allow(SlackAPI::Slack::OAuth).to receive(:token_expired?).and_return true
     expect(SlackAPI::Slack::Profile::Status.set!(fake_event)).to eq expected_response
     end
@@ -117,7 +120,10 @@ describe "Slack Profiles" do
         }.to_json,
         statusCode: 200
       }
-      allow(SlackAPI::Auth).to receive(:get_slack_token).and_return 'fake-token'
+      allow(SlackAPI::Auth).to receive(:get_slack_token).and_return({
+        statusCode: 200,
+        body: { token: 'fake-token' }.to_json
+      })
       allow(SlackAPI::Slack::OAuth).to receive(:token_expired?).and_return false
       [:get, :post].each do |method|
         url = fake_responses[method][:url]
@@ -154,7 +160,10 @@ describe "Slack Profiles" do
       new_emoji = ':rocket:'
       fake_responses[:post][:options][:query][:profile].gsub!(/:ok:/,new_emoji)
       fake_responses[:post][:response].gsub!(/:ok:/,new_emoji)
-      allow(SlackAPI::Auth).to receive(:get_slack_token).and_return 'fake-token'
+      allow(SlackAPI::Auth).to receive(:get_slack_token).and_return({
+        statusCode: 200,
+        body: { token: 'fake-token' }.to_json
+      })
       allow(SlackAPI::Slack::OAuth).to receive(:token_expired?).and_return false
       [:get, :post].each do |method|
         url = fake_responses[method][:url]

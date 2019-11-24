@@ -18,9 +18,12 @@ module SlackAPI
             end
             param_map[parameter] = value
           end
-         
-          token = SlackAPI::Auth.get_slack_token(event: event)
-          if SlackAPI::Slack::OAuth.token_expired?
+
+          # I should probably make an authenticated session a class that has
+          # its token in it, but I'm tight af on time...so ugly it is!
+          token_data = SlackAPI::Auth.get_slack_token(event: event)
+          token = JSON.parse(token_data[:body])['token']
+          if SlackAPI::Slack::OAuth.token_expired?(token: token)
             return SlackAPI::AWSHelpers::APIGateway.unauthenticated(message: 'Token expired')
           end
           text = param_map['text']
@@ -77,7 +80,8 @@ module SlackAPI
                                                     profile: {
                                                       status_text: text,
                                                       status_emoji: emoji
-                                                    }.to_json})
+                                                    }.to_json
+                                                  })
           json = JSON.parse(response.body, symbolize_names: true)
           if response.code != 200 or !json[:ok]
             case json[:error]
