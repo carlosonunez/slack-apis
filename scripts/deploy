@@ -19,7 +19,7 @@ case "$ENVIRONMENT" in
   production)
     for stage in deploy-serverless-infra deploy-serverless-domain deploy-serverless-functions
     do
-      docker-compose -f docker-compose.deploy.yml run --rm "$stage"
+      docker-compose -f docker-compose.deploy.yml run -e ENVIRONMENT=production --rm "$stage"
     done
     ;;
   *)
