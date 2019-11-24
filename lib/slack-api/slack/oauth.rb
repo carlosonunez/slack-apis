@@ -11,7 +11,7 @@ module SlackAPI
           code: code,
           redirect_uri: redirect_uri
         }
-        SlackAPI::Slack::API.get_from(endpoint: '/api/oauth.access', params: params)
+        SlackAPI::Slack::API.get_from(endpoint: 'oauth.access', params: params)
       end
     end
   end
