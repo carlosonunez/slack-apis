@@ -1,5 +1,6 @@
 ---
-plugins: ${file(./serverless_plugins.yml):${self:provider.stage}}
+plugins:
+  - serverless-domain-manager
 
 service:
   name: slack-apis
@@ -100,9 +101,9 @@ functions:
           method: get
 
 custom:
-  stage: "${opt:stage, self:provider.stage}"
-  production:
-    customDomain:
-      domainName: ${env:DOMAIN_PATH}.${env:DOMAIN_TLD}
-      basePath: ''
-      createRoute53Record: true
+  customDomain:
+    stage: v1
+    domainName: ${env:DOMAIN_PATH}.${env:DOMAIN_TLD}
+    certificateArn: ${file(./secrets/certificate_arn)}
+    basePath: 'v1'
+    createRoute53Record: true
