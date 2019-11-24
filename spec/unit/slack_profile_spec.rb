@@ -117,7 +117,7 @@ describe "Slack Profiles" do
         }.to_json
       }
     }
-    it "Should set the user's profile", :wip do
+    it "Should set the user's profile", :unit do
       expected_response = {
         statusCode: 200,
         body: {
