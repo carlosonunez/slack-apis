@@ -101,7 +101,7 @@ resource "aws_acm_certificate_validation" "app_cert" {
 }
 
 resource "aws_dynamodb_table" "state_associations" {
-  name = "slack_auth_tokens"
+  name = "slack_auth_state_tokens"
   hash_key = "access_key"
   read_capacity = 2
   write_capacity = 2
@@ -109,21 +109,13 @@ resource "aws_dynamodb_table" "state_associations" {
     name = "access_key"
     type = "S"
   }
-  attribute {
-    name = "slack_key"
-    type = "S"
-  }
 }
 
 resource "aws_dynamodb_table" "slack_tokens" {
-  name = "slack_auth_tokens"
+  name = "slack_auth_state_state_associations"
   hash_key = "state_id"
   read_capacity = 2
   write_capacity = 2
-  attribute {
-    name = "access_key"
-    type = "S"
-  }
   attribute {
     name = "state_id"
     type = "S"
