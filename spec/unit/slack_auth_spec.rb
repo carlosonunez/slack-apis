@@ -153,7 +153,7 @@ state=fake-state-id"
             }
           },
           queryStringParameters: {
-            reauthenticate: true
+            reauthenticate: 'true'
           },
           headers: {
             Host: 'example.fake'
