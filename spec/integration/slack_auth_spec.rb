@@ -7,7 +7,7 @@ describe "Slack OAuth" do
 
   context "Step 1" do
     it "Should give me a URL to continue authenticating", :integration do
-      uri = "#{$api_gateway_url}/auth?workspace=#{ENV['SLACK_WORKSPACE_NAME']}"
+      uri = "#{$api_gateway_url}/auth?workspace=#{ENV['SLACK_WORKSPACE_NAME']}&reauthenticate=true"
       response = HTTParty.get(uri, {
         headers: { 'x-api-key': $test_api_key }
       })
@@ -26,7 +26,7 @@ redirect_uri=#{$api_gateway_url}/callback&state=[a-zA-Z0-9]{32}}
   # requires user action through a GUI.
   context "Step 2" do
     it "Should save my token with my API key", :integration do
-      uri = "#{$api_gateway_url}/auth?workspace=#{ENV['SLACK_WORKSPACE_NAME']}"
+      uri = "#{$api_gateway_url}/auth?workspace=#{ENV['SLACK_WORKSPACE_NAME']}&reauthenticate=true"
       response = HTTParty.get(uri, {
         headers: { 'x-api-key': $test_api_key }
       })
