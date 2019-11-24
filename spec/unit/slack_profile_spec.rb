@@ -70,12 +70,12 @@ describe "Slack Profiles" do
       queryStringParameters: {
         workspace: 'fake-workspace',
         user: 'fake-user',
-        status: 'fake-status'
+        status: 'new-status'
       }
     }.to_json)
     fake_responses = {
       get: {
-        url: "https://fake-workspace.slack.com/users.profile.get",
+        url: "https://slack.com/api/users.profile.get",
         options: {
           headers: {
             'Content-Type': 'application/x-www-formencoded'
@@ -94,21 +94,22 @@ describe "Slack Profiles" do
         }.to_json
       },
       post: {
-        url: "https://fake-workspace.slack.com/users.profile.set",
+        url: "https://slack.com/api/users.profile.set",
         options: {
           headers: {
             'Content-Type': 'application/json'
           },
+          body: nil,
           query: {
             token: 'fake-token',
             user: 'fake-user',
-            profile: {
+           profile: {
               status_text: 'new-status',
               status_emoji: ':ok:'
             }.to_json
           }
         },
-        response_body: {
+        response: {
           ok: true,
           profile: {
             status_text: 'new-status',
@@ -119,24 +120,24 @@ describe "Slack Profiles" do
     }
     it "Should set the user's profile", :unit do
       expected_response = {
-        statusCode: 200,
         body: {
           status: 'ok',
           changed: {
             old: ':ok: old-status',
             new: ':ok: new-status'
           }
-        }
-      }.to_json
+        }.to_json,
+        statusCode: 200
+      }
       allow(SlackAPI::Auth).to receive(:get_slack_token).and_return 'fake-token'
       allow(SlackAPI::Slack::OAuth).to receive(:token_expired?).and_return false
       allow(SlackAPI::Slack::Users).to receive(:get_id).and_return 'fake-user'
       [:get, :post].each do |method|
-        url = fake_responses[method][url]
+        url = fake_responses[method][:url]
         httparty_options = fake_responses[method][:options]
-        mocked_response_body = fake_responses[method][:response_body]
+        mocked_response_body = fake_responses[method][:response]
         allow(HTTParty).to receive(method).with(url, httparty_options)
-          .and_return(instance_double(HTTParty::Response, body: mocked_response_body))
+          .and_return(double(HTTParty::Response, code: 200, body: mocked_response_body))
       end
       expect(SlackAPI::Slack::Profile::Status.set!(fake_event)).to eq expected_response
     end
