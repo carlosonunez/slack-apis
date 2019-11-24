@@ -33,6 +33,31 @@ describe "Slack Profiles" do
           .to eq expected_response
       end
     end
+
+    it 'Should error if token is expired', :unit do
+    fake_event = JSON.parse({
+      requestContext: {
+        identity: {
+          apiKey: 'fake-key'
+        }
+      },
+      queryStringParameters: {
+        workspace: 'fake-workspace',
+        user: 'fake-user',
+        status: 'fake-status'
+      }
+    }.to_json)
+    expected_response = {
+      statusCode: 403,
+      body: {
+        status: 'error',
+        message: 'Token expired'
+      }.to_json,
+    }
+    allow(SlackAPI::Auth).to receive(:get_slack_token).and_return 'fake-token'
+    allow(SlackAPI::Slack::OAuth).to receive(:token_expired?).and_return true
+    expect(SlackAPI::Slack::Profile::Status.set!(fake_event)).to eq expected_response
+    end
   end
 
   context 'Profile setting' do
@@ -92,7 +117,7 @@ describe "Slack Profiles" do
         }.to_json
       }
     }
-    it "Should set the user's profile", :unit do
+    it "Should set the user's profile", :wip do
       expected_response = {
         statusCode: 200,
         body: {
@@ -103,6 +128,7 @@ describe "Slack Profiles" do
           }
         }
       }.to_json
+      allow(SlackAPI::Auth).to receive(:get_slack_token).and_return 'fake-token'
       allow(SlackAPI::Slack::OAuth).to receive(:token_expired?).and_return false
       allow(SlackAPI::Slack::Users).to receive(:get_id).and_return 'fake-user'
       [:get, :post].each do |method|

@@ -1,4 +1,5 @@
 require 'slack-api/aws_helpers/api_gateway'
+require 'slack-api/auth'
 
 module SlackAPI
   module Slack
@@ -15,7 +16,11 @@ module SlackAPI
             end
             param_map[required_parameter] = value
           end
-          return nil
+          
+          token = SlackAPI::Auth.get_slack_token(event: event)
+          if SlackAPI::Slack::OAuth.token_expired? token
+            SlackAPI::AWSHelpers::APIGateway.unauthenticated(message: 'Token expired')
+          end
         end
       end
     end
