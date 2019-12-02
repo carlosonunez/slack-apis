@@ -30,8 +30,15 @@ module SlackAPI
           emoji = param_map['emoji']
           begin
             current_profile = self.get_current_profile(token: token)
+            current_text = current_profile[:status_text]
+            current_emoji = current_profile[:status_emoji]
+            if text == current_text and emoji == current_emoji
+              return SlackAPI::AWSHelpers::APIGateway.ok(additional_json: {
+                changed: {}
+              })
+            end
             if emoji.nil?
-              new_emoji = current_profile[:status_emoji]
+              new_emoji = current_emoji
             else
               new_emoji = emoji
             end
