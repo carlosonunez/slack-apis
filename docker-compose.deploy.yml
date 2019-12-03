@@ -13,6 +13,7 @@ services:
     env_file: .env
     environment:
       - TF_CLI_ARGS_destroy="-force"
+      - TF_DATA_DIR=/tmp
     volumes:
       - $PWD:/app
     working_dir: /app
@@ -21,11 +22,15 @@ services:
       - ./scripts/execute_terraform.sh
   validate-serverless-infra:
     extends: terraform
+    environment:
+      TF_VAR_environment: "production"
     command:
       - plan
       - --input=false
   deploy-serverless-infra:
     extends: terraform
+    environment:
+      ENVIRONMENT: "production"
     command:
       - apply
       - --auto-approve=true
@@ -33,18 +38,24 @@ services:
   deploy-serverless-domain:
     extends: serverless
     environment:
-      SLS_DEBUG: "true" # this command is janky af
+      ENVIRONMENT: "production"
     command:
       - create_domain
+      - --stage
+      - v1
   deploy-serverless-functions:
     extends: serverless
+    environment:
+      ENVIRONMENT: "production"
     command:
       - deploy
       - --stage
       - v1
   deploy-serverless-infra-test:
     extends: terraform
+    env_file: .env.integration
     environment:
+      ENVIRONMENT: "test"
       TF_VAR_no_certs: "true"
     command:
       - apply
@@ -52,6 +63,9 @@ services:
       - --input=false
   deploy-serverless-functions-test:
     extends: serverless
+    env_file: .env.integration
+    environment:
+      ENVIRONMENT: "test"
     command:
       - deploy
       - --stage

@@ -2,6 +2,8 @@ version: '2.2'
 services:
   selenium:
     image: selenium/standalone-chrome-debug
+    environment:
+      ENVIRONMENT: test
     volumes:
       - /dev/shm:/dev/shm
     ports:
@@ -12,11 +14,15 @@ services:
       dockerfile: serverless.Dockerfile
       context: .
     env_file: .env
+    environment:
+      ENVIRONMENT: "test"
     volumes:
       - $PWD:/app
     working_dir: /app
   dynamodb:
     image: amazon/dynamodb-local
+    environment:
+      ENVIRONMENT: "test"
     ports:
       - 8000:8000
   ruby:
@@ -26,6 +32,8 @@ services:
       args:
         ENVIRONMENT: test
     env_file: .env
+    environment:
+      ENVIRONMENT: "test"
     volumes:
       - $PWD:/app:ro,delegated # fix rspec slowness due to size of vendor dir
     working_dir: /app
@@ -35,6 +43,8 @@ services:
       - "not meant to be run with the stack"
   vendor:
     extends: ruby
+    environment:
+      ENVIRONMENT: "test"
     volumes:
       - "$PWD:/app:cached"
       - "$PWD/vendor:/vendor:cached"
@@ -46,6 +56,7 @@ services:
     extends: ruby
     entrypoint: rspec
     environment:
+      ENVIRONMENT: "test"
       LOAD_PATH: "/app/spec/unit;/app/spec;/app/lib"
       AWS_DYNAMODB_ENDPOINT_URL: "http://dynamodb:8000"
     command:
@@ -57,7 +68,7 @@ services:
   integration:
     extends: ruby
     entrypoint: rspec
-    env_file: .env
+    env_file: .env.integration
     environment:
       LOAD_PATH: "/app/spec/unit;/app/spec;/app/lib"
       SELENIUM_HOST: selenium
@@ -73,12 +84,16 @@ services:
   integration-setup:
     extends: serverless
     entrypoint: bash
+    environment:
+      ENVIRONMENT: "test"
     command:
       - -c
       - ./scripts/integration_setup.sh
   integration-teardown:
     extends: serverless
     entrypoint: bash
+    environment:
+      ENVIRONMENT: "test"
     command:
       - -c
       - ./scripts/integration_teardown.sh

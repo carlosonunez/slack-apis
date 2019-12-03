@@ -9,7 +9,7 @@ module SlackAPI
   module Auth
     class SlackToken
       Dynamoid.configure do |config|
-        config.namespace = "slack_auth"
+        config.namespace = "slack_auth_#{ENV['ENVIRONMENT'].downcase}"
         config.logger.level = Logger::FATAL
       end
 
@@ -21,7 +21,7 @@ module SlackAPI
 
     class SlackAuthState
       Dynamoid.configure do |config|
-        config.namespace = "slack_auth_state"
+        config.namespace = "slack_auth_state_#{ENV['ENVIRONMENT'].downcase}"
         config.logger.level = Logger::FATAL
       end
 

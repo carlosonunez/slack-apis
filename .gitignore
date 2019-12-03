@@ -4,3 +4,4 @@
 secrets
 vendor
 Gemfile.lock
+.env.integration

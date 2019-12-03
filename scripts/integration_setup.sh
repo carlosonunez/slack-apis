@@ -13,8 +13,8 @@ get_api_gateway_endpoint() {
 
   >&2 echo "INFO: Getting API Gateway default API key."
   api_key=$(serverless info --stage develop | \
-    grep -E 'default_key_for_slack_api:' | \
-    sed 's/.*default_key_for_slack_api: //' | \
+    grep -E 'default-slack-key-dev:' | \
+    sed 's/.*default-slack-key-dev: //' | \
     tr -d ' '
   )
   if test -z "$endpoint_url"

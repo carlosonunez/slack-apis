@@ -13,10 +13,10 @@ provider:
   region: ${env:AWS_REGION, 'us-east-2'}
   memorySize: 256
   deploymentBucket:
-    name: ${env:SERVERLESS_BUCKET_NAME}
+    name: ${env:SERVERLESS_BUCKET_NAME}-${env:ENVIRONMENT}
   deploymentPrefix: serverless
   apiKeys:
-    - default_key_for_slack_api
+    - ${self:custom.keyName.${opt:stage, self:provider.stage}}
   tracing:
     apiGateway: true
 
@@ -44,6 +44,7 @@ functions:
       SLACK_APP_CLIENT_ID: ${env:SLACK_APP_CLIENT_ID}
       APP_AWS_ACCESS_KEY_ID: ${file(./secrets/app_account_ak)}
       APP_AWS_SECRET_ACCESS_KEY: ${file(./secrets/app_account_sk)}
+      ENVIRONMENT: ${env:ENVIRONMENT}
     events:
       - http:
           path: auth
@@ -59,6 +60,7 @@ functions:
       SLACK_APP_CLIENT_SECRET: ${env:SLACK_APP_CLIENT_SECRET}
       APP_AWS_ACCESS_KEY_ID: ${file(./secrets/app_account_ak)}
       APP_AWS_SECRET_ACCESS_KEY: ${file(./secrets/app_account_sk)}
+      ENVIRONMENT: ${env:ENVIRONMENT}
     events:
       - http:
           path: callback
@@ -71,9 +73,10 @@ functions:
       GEM_PATH: vendor/bundle/ruby/2.5.0
       APP_AWS_ACCESS_KEY_ID: ${file(./secrets/app_account_ak)}
       APP_AWS_SECRET_ACCESS_KEY: ${file(./secrets/app_account_sk)}
+      ENVIRONMENT: ${env:ENVIRONMENT}
     events:
       - http:
-          path: getToken
+          path: token
           method: get
           private: true
   status_set:
@@ -81,6 +84,7 @@ functions:
     description: Changes the user's status on Slack after authenticating.
     timeout: 30
     environment:
+      ENVIRONMENT: ${env:ENVIRONMENT}
       GEM_PATH: vendor/bundle/ruby/2.5.0
       APP_AWS_ACCESS_KEY_ID: ${file(./secrets/app_account_ak)}
       APP_AWS_SECRET_ACCESS_KEY: ${file(./secrets/app_account_sk)}
@@ -95,15 +99,23 @@ functions:
     timeout: 30
     environment:
       GEM_PATH: vendor/bundle/ruby/2.5.0
+      ENVIRONMENT: ${env:ENVIRONMENT}
     events:
       - http:
           path: ping
           method: get
 
 custom:
+  keyName:
+    develop: default-slack-key-dev
+    v1: default-tripit-key-prod
+  enableCustomDomain:
+    develop: false
+    v1: true
   customDomain:
     stage: v1
     domainName: ${env:DOMAIN_PATH}.${env:DOMAIN_TLD}
     certificateArn: ${file(./secrets/certificate_arn)}
     basePath: 'v1'
     createRoute53Record: true
+    enabled: ${self:custom.enableCustomDomain.${opt:stage, self:provider.stage}}
