@@ -108,7 +108,7 @@ functions:
 custom:
   keyName:
     develop: default-slack-key-dev
-    v1: default-tripit-key-prod
+    v1: default-slack-key-prod
   enableCustomDomain:
     develop: false
     v1: true
