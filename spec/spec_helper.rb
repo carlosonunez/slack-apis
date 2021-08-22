@@ -5,6 +5,7 @@ require 'capybara/dsl'
 require 'selenium-webdriver'
 require 'slack-api'
 require 'timeout'
+require 'uri'
 Dir.glob('/app/spec/helpers/**/*.rb') do |file|
   require_relative file
 end

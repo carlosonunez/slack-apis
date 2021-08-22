@@ -1,11 +1,11 @@
 ---
+useDotenv: true
+
 plugins:
   - serverless-domain-manager
 
-service:
-  name: slack-apis
-
-frameworkVersion: '>=1.0.0'
+service: slack-apis
+frameworkVersion: '2.43.1'
 
 provider:
   name: aws
@@ -15,24 +15,24 @@ provider:
   deploymentBucket:
     name: ${env:SERVERLESS_BUCKET_NAME}-${env:ENVIRONMENT}
   deploymentPrefix: serverless
-  apiKeys:
-    - ${self:custom.keyName.${opt:stage, self:provider.stage}}
+  apiGateway:
+    apiKeys:
+      - ${self:custom.keyName.${opt:stage, self:provider.stage}}
   tracing:
     apiGateway: true
 
 package:
-  include:
-    - lib/**
-    - bin/**
-    - vendor/**
-  exclude:
-    - scripts/**
-    - secrets/**
-    - infra/**
-    - docker-compose.*
-    - .terraform/**
-    - spec/**
-    - .env*
+  patterns:
+    - 'lib/**'
+    - 'bin/**'
+    - 'vendor/**'
+    - '!scripts/**'
+    - '!secrets/**'
+    - '!infra/**'
+    - '!docker-compose.*'
+    - '!.terraform/**'
+    - '!spec/**'
+    - '!.env*'
 
 functions:
   auth:

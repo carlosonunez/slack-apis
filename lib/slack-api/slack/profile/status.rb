@@ -2,6 +2,7 @@ require 'httparty'
 require 'slack-api/auth'
 require 'slack-api/aws_helpers/api_gateway'
 require 'slack-api/slack/api'
+require 'uri'
 
 module SlackAPI
   module Slack
@@ -23,6 +24,9 @@ module SlackAPI
           # its token in it, but I'm tight af on time...so ugly it is!
           token_data = SlackAPI::Auth.get_slack_token(event: event)
           token = JSON.parse(token_data[:body])['token']
+          if not SlackAPI::Slack::OAuth.token_valid?(token: token)
+            return SlackAPI::AWSHelpers::APIGateway.unauthenticated(message: 'Unable to validate token.')
+          end
           if SlackAPI::Slack::OAuth.token_expired?(token: token)
             return SlackAPI::AWSHelpers::APIGateway.unauthenticated(message: 'Token expired')
           end
@@ -80,14 +84,16 @@ module SlackAPI
         end
 
         def self.set_profile(token:, text:, emoji:)
+          updated_profile = {
+            status_text: text,
+            status_emoji: emoji
+          }
+          uri_encoded_profile = URI.encode(updated_profile)
           response = SlackAPI::Slack::API.post_to(endpoint: 'users.profile.set',
                                                   token: token,
                                                   content_type: 'application/json',
                                                   params: {
-                                                    profile: {
-                                                      status_text: text,
-                                                      status_emoji: emoji
-                                                    }.to_json
+                                                    profile: uri_encoded_profile
                                                   })
           json = JSON.parse(response.body, symbolize_names: true)
           if response.code != 200 or !json[:ok]

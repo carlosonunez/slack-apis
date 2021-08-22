@@ -1,9 +1,9 @@
 version: '2.2'
 services:
   selenium:
-    image: selenium/standalone-chrome-debug
+    image: seleniarm/standalone-chromium:4.0.0-beta-1-20210215
     environment:
-      ENVIRONMENT: test
+      - ENVIRONMENT=test
     volumes:
       - /dev/shm:/dev/shm
     ports:
@@ -15,7 +15,11 @@ services:
       context: .
     env_file: .env
     environment:
-      ENVIRONMENT: "test"
+      - AWS_ACCESS_KEY_ID
+      - AWS_SECRET_ACCESS_KEY
+      - AWS_REGION
+      - AWS_SESSION_TOKEN
+      - ENVIRONMENT=test
     volumes:
       - $PWD:/app
     working_dir: /app

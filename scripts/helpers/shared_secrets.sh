@@ -26,5 +26,5 @@ write_secret() {
     fi
   fi
   secret_filepath="./secrets/$secret_filename"
-  printf "$secret" > "$secret_filepath"
+  printf "%s" "$secret" > "$secret_filepath"
 }

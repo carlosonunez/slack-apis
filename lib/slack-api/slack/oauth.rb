@@ -16,11 +16,24 @@ module SlackAPI
                                      params: params)
       end
 
-      def self.token_expired?(token:)
-        response = SlackAPI::Slack::API.get_from(endpoint: 'auth.test',
-                                                 params: { token: token })
+      def self.token_valid?(token:)
+        response = SlackAPI::Slack::API.get_from(endpoint: 'auth.test', token: token)
         json = JSON.parse(response.body, symbolize_names: true)
-        json[:ok] == false and json[:error] == 'invalid_auth'
+        if not json.has_key?(:ok) or (!json[:ok] and json[:error] != 'invalid_auth')
+          SlackAPI.logger.warn("Token ending in #{scrubbed_token(token)} is invalid: #{json}")
+          false
+        end
+        true
+      end
+
+      def self.token_expired?(token:)
+        response = SlackAPI::Slack::API.get_from(endpoint: 'auth.test', token: token)
+        json = JSON.parse(response.body, symbolize_names: true)
+        !json[:ok] and json[:error] == 'invalid_auth'
+      end
+
+      def self.scrubbed_token(token:)
+        token[0..7]
       end
     end
   end

@@ -5,10 +5,10 @@ describe 'Slack user methods' do
     it 'Should give me a user ID associated with my token', :unit do
       url_to_mock = 'https://slack.com/api/users.identity'
       request_opts = {
-        headers: { 'Content-Type': 'application/x-www-formencoded' },
-        query: {
-          token: 'fake-token'
-        }
+        headers: {
+          'Content-Type': 'application/x-www-formencoded',
+          'Authorization': 'Bearer fake-token'
+        }.transform_keys(&:to_s),
       }
       mocked_response_body = {
         status: 'ok',
