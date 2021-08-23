@@ -9,7 +9,7 @@ frameworkVersion: '2.43.1'
 
 provider:
   name: aws
-  runtime: ruby2.5
+  runtime: ruby2.7
   region: ${env:AWS_REGION, 'us-east-2'}
   memorySize: 256
   deploymentBucket:
@@ -40,7 +40,7 @@ functions:
     description: Function that directs the user to start the Slack OAuth flow.
     timeout: 30
     environment:
-      GEM_PATH: vendor/bundle/ruby/2.5.0
+      GEM_PATH: vendor/bundle/ruby/2.7.0
       SLACK_APP_CLIENT_ID: ${env:SLACK_APP_CLIENT_ID}
       APP_AWS_ACCESS_KEY_ID: ${file(./secrets/app_account_ak)}
       APP_AWS_SECRET_ACCESS_KEY: ${file(./secrets/app_account_sk)}
@@ -55,7 +55,7 @@ functions:
     description: Function that receives Slack OAuth callbacks.
     timeout: 30
     environment:
-      GEM_PATH: vendor/bundle/ruby/2.5.0
+      GEM_PATH: vendor/bundle/ruby/2.7.0
       SLACK_APP_CLIENT_ID: ${env:SLACK_APP_CLIENT_ID}
       SLACK_APP_CLIENT_SECRET: ${env:SLACK_APP_CLIENT_SECRET}
       APP_AWS_ACCESS_KEY_ID: ${file(./secrets/app_account_ak)}
@@ -70,7 +70,7 @@ functions:
     description: Retrieves tokens for authenticated users.
     timeout: 30
     environment:
-      GEM_PATH: vendor/bundle/ruby/2.5.0
+      GEM_PATH: vendor/bundle/ruby/2.7.0
       APP_AWS_ACCESS_KEY_ID: ${file(./secrets/app_account_ak)}
       APP_AWS_SECRET_ACCESS_KEY: ${file(./secrets/app_account_sk)}
       ENVIRONMENT: ${env:ENVIRONMENT}
@@ -85,7 +85,7 @@ functions:
     timeout: 30
     environment:
       ENVIRONMENT: ${env:ENVIRONMENT}
-      GEM_PATH: vendor/bundle/ruby/2.5.0
+      GEM_PATH: vendor/bundle/ruby/2.7.0
       APP_AWS_ACCESS_KEY_ID: ${file(./secrets/app_account_ak)}
       APP_AWS_SECRET_ACCESS_KEY: ${file(./secrets/app_account_sk)}
     events:
@@ -98,7 +98,7 @@ functions:
     description: Healthiness endpoint for APIs.
     timeout: 30
     environment:
-      GEM_PATH: vendor/bundle/ruby/2.5.0
+      GEM_PATH: vendor/bundle/ruby/2.7.0
       ENVIRONMENT: ${env:ENVIRONMENT}
     events:
       - http:
