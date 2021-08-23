@@ -57,6 +57,7 @@ module SlackAPI
                 }
               })
           rescue Exception => e
+            SlackAPI.logger.error "[#{SlackAPI::Slack::OAuth.scrubbed_token(token: token)}] Couldn't set profile: #{e} -> #{e.backtrace.join('\n')}]"
             return SlackAPI::AWSHelpers::APIGateway.error(
               message: "Something weird happened while setting your profile: #{e}")
           end
@@ -88,7 +89,7 @@ module SlackAPI
             status_text: text,
             status_emoji: emoji
           }
-          uri_encoded_profile = URI.encode(updated_profile)
+          uri_encoded_profile = URI.encode(updated_profile.to_json)
           response = SlackAPI::Slack::API.post_to(endpoint: 'users.profile.set',
                                                   token: token,
                                                   content_type: 'application/json',
