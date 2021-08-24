@@ -10,12 +10,13 @@ module SlackAPI
       module Status
         def self.set!(event)
           param_map = {}
-          %w(text emoji).each do |parameter|
+          %w[text emoji].each do |parameter|
             value = SlackAPI::AWSHelpers::APIGateway::Events.get_param(event: event,
                                                                        param: parameter)
-            if value.nil? and parameter == 'text'
+            if value.nil? && (parameter == 'text')
               return SlackAPI::AWSHelpers::APIGateway.error(
-                message: "Parameter required: #{parameter}")
+                message: "Parameter required: #{parameter}"
+              )
             end
             param_map[parameter] = value
           end
@@ -24,52 +25,54 @@ module SlackAPI
           # its token in it, but I'm tight af on time...so ugly it is!
           token_data = SlackAPI::Auth.get_slack_token(event: event)
           token = JSON.parse(token_data[:body])['token']
-          if not SlackAPI::Slack::OAuth.token_valid?(token: token)
+          unless SlackAPI::Slack::OAuth.token_valid?(token: token)
             return SlackAPI::AWSHelpers::APIGateway.unauthenticated(message: 'Unable to validate token.')
           end
           if SlackAPI::Slack::OAuth.token_expired?(token: token)
             return SlackAPI::AWSHelpers::APIGateway.unauthenticated(message: 'Token expired')
           end
+
           text = param_map['text']
           emoji = param_map['emoji']
           begin
-            current_profile = self.get_current_profile(token: token)
+            current_profile = get_current_profile(token: token)
             current_text = current_profile[:status_text]
             current_emoji = current_profile[:status_emoji]
-            if text == current_text and emoji == current_emoji
+            if (text == current_text) && (emoji == current_emoji)
               return SlackAPI::AWSHelpers::APIGateway.ok(additional_json: {
-                changed: {}
-              })
+                                                           changed: {}
+                                                         })
             end
-            if emoji.nil?
-              new_emoji = current_emoji
-            else
-              new_emoji = emoji
-            end
-            self.set_profile(token: token,
-                             text: text,
-                             emoji: new_emoji)
+            new_emoji = if emoji.nil?
+                          current_emoji
+                        else
+                          emoji
+                        end
+            set_profile(token: token,
+                        text: text,
+                        emoji: new_emoji)
             SlackAPI::AWSHelpers::APIGateway.ok(
               additional_json: {
                 changed: {
                   old: "#{current_profile[:status_emoji]} #{current_profile[:status_text]}",
                   new: "#{new_emoji} #{text}"
                 }
-              })
+              }
+            )
           rescue Exception => e
             SlackAPI.logger.error "[#{SlackAPI::Slack::OAuth.scrubbed_token(token: token)}] Couldn't set profile: #{e} -> #{e.backtrace.join('\n')}]"
-            return SlackAPI::AWSHelpers::APIGateway.error(
-              message: "Something weird happened while setting your profile: #{e}")
+            SlackAPI::AWSHelpers::APIGateway.error(
+              message: "Something weird happened while setting your profile: #{e}"
+            )
           end
         end
 
-        private
         def self.get_current_profile(token:)
           response = SlackAPI::Slack::API.get_from(endpoint: 'users.profile.get',
                                                    token: token,
                                                    content_type: 'application/x-www-formencoded')
           json = JSON.parse(response.body, symbolize_names: true)
-          if response.code != 200 or !json[:ok]
+          if (response.code != 200) || !json[:ok]
             case json[:error]
             when 'not_authed'
               raise 'Not authenticated.'
@@ -89,15 +92,14 @@ module SlackAPI
             status_text: text,
             status_emoji: emoji
           }
-          uri_encoded_profile = URI.encode(updated_profile.to_json)
           response = SlackAPI::Slack::API.post_to(endpoint: 'users.profile.set',
                                                   token: token,
                                                   content_type: 'application/json',
                                                   params: {
-                                                    profile: uri_encoded_profile
+                                                    profile: updated_profile.to_json
                                                   })
           json = JSON.parse(response.body, symbolize_names: true)
-          if response.code != 200 or !json[:ok]
+          if (response.code != 200) || !json[:ok]
             case json[:error]
             when 'not_authed'
               raise 'Not authenticated.'

@@ -7,6 +7,8 @@ module SlackAPI
       def self.get_from(endpoint:, token: nil, params: {}, content_type: 'application/json')
         headers = { 'Content-Type' => content_type }
         headers['Authorization'] = "Bearer #{token}" unless token.nil?
+        scrubbed_token = SlackAPI::Slack::OAuth.scrubbed_token(token: token)
+        SlackAPI.logger.debug("[#{scrubbed_token}] GET #{endpoint} with #{params}")
         if params.empty?
           HTTParty.get("https://slack.com/api/#{endpoint}", headers: headers)
         else
@@ -14,9 +16,11 @@ module SlackAPI
         end
       end
 
-      def self.post_to(endpoint:, token: nil, params: {}, body: nil, content_type: 'application/x-www-formencoded')
+      def self.post_to(endpoint:, token: nil, params: {}, body: nil, content_type: 'application/json')
         headers = { 'Content-Type' => content_type }
         headers['Authorization'] = "Bearer #{token}" unless token.nil?
+        scrubbed_token = SlackAPI::Slack::OAuth.scrubbed_token(token: token)
+        SlackAPI.logger.debug("[#{scrubbed_token}] POST #{endpoint} -> #{body} with params #{params}")
         if params.empty?
           HTTParty.post("https://slack.com/api/#{endpoint}", body: body, headers: headers)
         else
@@ -26,4 +30,3 @@ module SlackAPI
     end
   end
 end
-
