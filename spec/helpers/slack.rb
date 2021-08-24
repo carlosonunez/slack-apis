@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'capybara'
 require 'capybara/dsl'
 
@@ -16,17 +18,17 @@ module Helpers
         include Capybara::DSL
         session = Capybara::Session.new :selenium
         session.visit "https://#{ENV['SLACK_WORKSPACE_NAME']}.slack.com/signin"
-        session.fill_in "email", with: ENV['SLACK_SANDBOX_ACCOUNT_EMAIL']
-        session.fill_in "password", with: ENV['SLACK_SANDBOX_ACCOUNT_PASSWORD']
-        session.click_button "signin_btn"
+        session.fill_in 'email', with: ENV['SLACK_SANDBOX_ACCOUNT_EMAIL']
+        session.fill_in 'password', with: ENV['SLACK_SANDBOX_ACCOUNT_PASSWORD']
+        session.click_button 'signin_btn'
 
-        session.visit "https://api.slack.com/apps/APDPV4M54/oauth?"
+        session.visit 'https://api.slack.com/apps/APDPV4M54/oauth?'
         session.find('button[data-qa="url_delete"]').click
-        session.click_button "Add New Redirect URL"
+        session.click_button 'Add New Redirect URL'
         session.find('input[data-qa="app_unfurl_domain"]').fill_in \
           with: callback_uri
-        session.click_button "Add"
-        session.click_button "Save URLs"
+        session.click_button 'Add'
+        session.click_button 'Save URLs'
       end
     end
   end

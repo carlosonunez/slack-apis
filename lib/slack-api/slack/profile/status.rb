@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'httparty'
 require 'slack-api/auth'
 require 'slack-api/aws_helpers/api_gateway'
@@ -7,7 +9,15 @@ require 'uri'
 module SlackAPI
   module Slack
     module Profile
+      # Methods for manipulating a user's status through their profile.
       module Status
+        def self.get_text_and_emoji(event)
+          {
+            text: SlackAPI::AWSHelpers::APIGateway::Events.get_param(event: event, param: 'text'),
+            emoji: SlackAPI::AWSHelpers::APIGateway::Events.get_param(event: event, param: 'emoji')
+          }
+        end
+
         def self.set!(event)
           param_map = {}
           %w[text emoji].each do |parameter|
@@ -38,6 +48,7 @@ module SlackAPI
             current_profile = get_current_profile(token: token)
             current_text = current_profile[:status_text]
             current_emoji = current_profile[:status_emoji]
+            SlackAPI.logger.debug("Comparing [#{text} -> #{emoji}] with [#{current_text} -> #{current_emoji}]")
             if (text == current_text) && (emoji == current_emoji)
               return SlackAPI::AWSHelpers::APIGateway.ok(additional_json: {
                                                            changed: {}
@@ -70,7 +81,7 @@ module SlackAPI
         def self.get_current_profile(token:)
           response = SlackAPI::Slack::API.get_from(endpoint: 'users.profile.get',
                                                    token: token,
-                                                   content_type: 'application/x-www-formencoded')
+                                                   content_type: 'application/x-www-form-urlencoded')
           json = JSON.parse(response.body, symbolize_names: true)
           if (response.code != 200) || !json[:ok]
             case json[:error]
@@ -94,7 +105,6 @@ module SlackAPI
           }
           response = SlackAPI::Slack::API.post_to(endpoint: 'users.profile.set',
                                                   token: token,
-                                                  content_type: 'application/json',
                                                   params: {
                                                     profile: updated_profile.to_json
                                                   })

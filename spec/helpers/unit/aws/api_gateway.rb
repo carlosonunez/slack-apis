@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'json'
 
 module Helpers
@@ -6,12 +8,11 @@ module Helpers
       module ApiGateway
         def self.return_200(body:)
           {
-            :statusCode => 200,
-            :body => body
+            statusCode: 200,
+            body: body
           }.to_json
         end
       end
     end
   end
 end
-

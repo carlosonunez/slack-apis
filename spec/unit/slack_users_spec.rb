@@ -1,14 +1,18 @@
+# frozen_string_literal: true
+
 require 'spec_helper'
 
 describe 'Slack user methods' do
   context 'Who am I?' do
-    it 'Should give me a user ID associated with my token', :unit do
+    it 'gives me a user ID associated with my token', :unit do
       url_to_mock = 'https://slack.com/api/users.identity'
       request_opts = {
         headers: {
-          'Content-Type': 'application/x-www-formencoded',
+          'Content-Type': 'application/x-www-form-urlencoded',
           'Authorization': 'Bearer fake-token'
         }.transform_keys(&:to_s),
+        params: nil,
+        debug_output: nil
       }
       mocked_response_body = {
         status: 'ok',

@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'aws-sdk-dynamodb'
 require 'slack-api/aws_helpers/api_gateway'
 require 'slack-api/slack'
@@ -30,75 +32,78 @@ module SlackAPI
       field :access_key
       field :state_id
     end
-=begin
-    Handle Slack OAuth callbacks.
-=end
+
+    #     Handle Slack OAuth callbacks.
     def self.handle_callback(event)
-      if !self.configure_aws!
+      unless configure_aws!
         return SlackAPI::AWSHelpers::APIGateway.error(
-          message: 'Please set APP_AWS_ACCESS_KEY and APP_AWS_SECRET_KEY')
+          message: 'Please set APP_AWS_ACCESS_KEY and APP_AWS_SECRET_KEY'
+        )
       end
       parameters = event['queryStringParameters']
       code = parameters['code']
       state_id = parameters['state']
       error = parameters['error']
       if !error.nil?
-        return SlackAPI::AWSHelpers::APIGateway.unauthenticated(
-          message: "User denied access to this app.")
-      elsif code.nil? and state_id.nil?
-        return SlackAPI::AWSHelpers::APIGateway.error(
-          message: "Slack didn't send a code or state_id upon calling back.")
+        SlackAPI::AWSHelpers::APIGateway.unauthenticated(
+          message: 'User denied access to this app.'
+        )
+      elsif code.nil? && state_id.nil?
+        SlackAPI::AWSHelpers::APIGateway.error(
+          message: "Slack didn't send a code or state_id upon calling back."
+        )
       else
-        callback_url = 'https://' + SlackAPI::AWSHelpers::APIGateway.get_endpoint(event) + \
-          event['requestContext']['path']
+        callback_url = "https://#{SlackAPI::AWSHelpers::APIGateway.get_endpoint(event)}#{event['requestContext']['path']}"
         token_response = SlackAPI::Slack::OAuth.access(client_id: ENV['SLACK_APP_CLIENT_ID'],
                                                        client_secret: ENV['SLACK_APP_CLIENT_SECRET'],
                                                        redirect_uri: callback_url,
                                                        code: code)
         if token_response.body.nil?
           return SlackAPI::AWSHelpers::APIGateway.error(
-            message: 'Unable to get Slack token.')
+            message: 'Unable to get Slack token.'
+          )
         end
         token_response_json = JSON.parse(token_response.body)
-        if !token_response_json['ok'].nil? and !token_response_json['ok']
+        if !token_response_json['ok'].nil? && !token_response_json['ok']
           return SlackAPI::AWSHelpers::APIGateway.unauthenticated(
             message: "Token request failed: #{token_response_json['error']}"
           )
         end
         token = token_response_json['access_token']
-        access_key_from_state = self.get_access_key_from_state(state_id: state_id)
+        access_key_from_state = get_access_key_from_state(state_id: state_id)
         if access_key_from_state.nil?
           return SlackAPI::AWSHelpers::APIGateway.error(
-            message: "No access key exists for this state ID: #{state_id}")
+            message: "No access key exists for this state ID: #{state_id}"
+          )
         end
-        if self.put_slack_token(access_key: access_key_from_state, slack_token: token)
-          return SlackAPI::AWSHelpers::APIGateway.ok
+        if put_slack_token(access_key: access_key_from_state, slack_token: token)
+          SlackAPI::AWSHelpers::APIGateway.ok
         else
-          return SlackAPI::AWSHelpers::APIGateway.error(message: "Unable to save Slack token.")
+          SlackAPI::AWSHelpers::APIGateway.error(message: 'Unable to save Slack token.')
         end
       end
     end
 
-=begin
-    Provide a first step for the authentication flow.
-=end
+    #     Provide a first step for the authentication flow.
     def self.begin_authentication_flow(event, client_id:)
-      if !self.configure_aws!
+      unless configure_aws!
         return SlackAPI::AWSHelpers::APIGateway.error(
-          message: 'Please set APP_AWS_ACCESS_KEY and APP_AWS_SECRET_KEY')
+          message: 'Please set APP_AWS_ACCESS_KEY and APP_AWS_SECRET_KEY'
+        )
       end
-      if !self.reauthenticate?(event: event) and self.has_token? event: event
+      if !reauthenticate?(event: event) && has_token?(event: event)
         return SlackAPI::AWSHelpers::APIGateway.ok(message: 'You already have a token.')
       end
-      scopes_csv = ENV['SLACK_APP_CLIENT_SCOPES'] || "users.profile:read,users.profile:write"
+
+      scopes_csv = ENV['SLACK_APP_CLIENT_SCOPES'] || 'users.profile:read,users.profile:write'
       redirect_uri = "https://#{SlackAPI::AWSHelpers::APIGateway.get_endpoint(event)}/callback"
-      workspace = self.get_workspace(event)
-      state_id = self.generate_state_id
-      if workspace.nil?
-        workspace_url = "slack.com"
-      else
-        workspace_url = "#{workspace}.slack.com"
-      end
+      workspace = get_workspace(event)
+      state_id = generate_state_id
+      workspace_url = if workspace.nil?
+                        'slack.com'
+                      else
+                        "#{workspace}.slack.com"
+                      end
       slack_authorization_uri = [
         "https://#{workspace_url}/oauth/authorize?client_id=#{client_id}",
         "scope=#{scopes_csv}",
@@ -107,40 +112,40 @@ module SlackAPI
       ].join '&'
       message = "You will need to authenticate into Slack first; click on or \
 copy/paste this URL to get started: #{slack_authorization_uri}"
-      if !self.associate_access_key_to_state_id!(event: event,
-                                                 state_id: state_id)
+      unless associate_access_key_to_state_id!(event: event,
+                                               state_id: state_id)
         return SlackAPI::AWSHelpers::APIGateway.error(
-          message: "Couldn't map state to access key.")
+          message: "Couldn't map state to access key."
+        )
       end
-      return SlackAPI::AWSHelpers::APIGateway.ok(message: message)
+      SlackAPI::AWSHelpers::APIGateway.ok(message: message)
     end
 
     # Retrives a Slack OAuth token from a API Gateway key
     def self.get_slack_token(event:)
-      if !self.configure_aws!
+      unless configure_aws!
         return SlackAPI::AWSHelpers::APIGateway.error(
-          message: 'Please set APP_AWS_ACCESS_KEY and APP_AWS_SECRET_KEY')
+          message: 'Please set APP_AWS_ACCESS_KEY and APP_AWS_SECRET_KEY'
+        )
       end
-      access_key = self.get_access_key_from_event(event)
-      if access_key.nil?
-        return SlackAPI::AWSHelpers::APIGateway.error(message: 'Access key missing.')
-      end
-      slack_token = self.get_slack_token_from_access_key(access_key)
+      access_key = get_access_key_from_event(event)
+      return SlackAPI::AWSHelpers::APIGateway.error(message: 'Access key missing.') if access_key.nil?
+
+      slack_token = get_slack_token_from_access_key(access_key)
       if slack_token.nil?
         return SlackAPI::AWSHelpers::APIGateway.not_found(
-          message: 'No token exists for this access key.')
+          message: 'No token exists for this access key.'
+        )
       end
       SlackAPI::AWSHelpers::APIGateway.ok(
-        additional_json: { token: slack_token })
+        additional_json: { token: slack_token }
+      )
     end
 
-    private
     def self.get_workspace(event)
-      begin
-        event['queryStringParameters']['workspace']
-      rescue
-        return nil
-      end
+      event['queryStringParameters']['workspace']
+    rescue StandardError
+      nil
     end
 
     def self.generate_state_id
@@ -152,43 +157,39 @@ copy/paste this URL to get started: #{slack_authorization_uri}"
     end
 
     def self.get_slack_token_from_access_key(access_key)
-      begin
-        results = SlackToken.where(access_key: access_key)
-        return nil if results.count == 0
-        results.first.slack_token
-      rescue Aws::DynamoDB::Errors::ResourceNotFoundException
-        SlackAPI.logger.warn("Slack tokens table not created yet.")
-        return nil
-      end
+      results = SlackToken.where(access_key: access_key)
+      return nil if results.count.zero?
+
+      results.first.slack_token
+    rescue Aws::DynamoDB::Errors::ResourceNotFoundException
+      SlackAPI.logger.warn('Slack tokens table not created yet.')
+      nil
     end
 
     # Puts a new token and API key into DynamoDB
     def self.put_slack_token(access_key:, slack_token:)
-      begin
-        mapping = SlackToken.new(access_key: access_key,
-                                 slack_token: slack_token)
-        mapping.save
-        return true
-      rescue Dynamoid::Errors::ConditionalCheckFailedException
-        puts "WARN: This access key already has a Slack token. We will check for \
+      mapping = SlackToken.new(access_key: access_key,
+                               slack_token: slack_token)
+      mapping.save
+      true
+    rescue Dynamoid::Errors::ConditionalCheckFailedException
+      puts "WARN: This access key already has a Slack token. We will check for \
 existing tokens and provide a refresh mechanism in a future commit."
-        return true
-      rescue Exception => e
-        SlackAPI.logger.error("We weren't able to save this token: #{e}")
-        return false
-      end
+      true
+    rescue Exception => e
+      SlackAPI.logger.error("We weren't able to save this token: #{e}")
+      false
     end
 
     def self.has_token?(event:)
-      begin
-        access_key = self.get_access_key_from_event(event)
-        results = SlackToken.where(access_key: access_key)
-        return nil if results.nil? or results.count == 0
-        !results.first.slack_token.nil?
-      rescue Exception => e
-        SlackAPI.logger.warn("Error while querying for an existing token; beware stranger tings: #{e}")
-        return false
-      end
+      access_key = get_access_key_from_event(event)
+      results = SlackToken.where(access_key: access_key)
+      return nil if results.nil? || results.count.zero?
+
+      !results.first.slack_token.nil?
+    rescue Exception => e
+      SlackAPI.logger.warn("Error while querying for an existing token; beware stranger tings: #{e}")
+      false
     end
 
     def self.reauthenticate?(event:)
@@ -207,8 +208,8 @@ existing tokens and provide a refresh mechanism in a future commit."
     # state ID. We will need to fix that at some point.
     def self.associate_access_key_to_state_id!(event:, state_id:)
       begin
-        access_key = self.get_access_key_from_event(event)
-      rescue
+        access_key = get_access_key_from_event(event)
+      rescue StandardError
         puts "WARN: Unable to get access key from context while trying to associate \
 access key with state."
         return false
@@ -218,37 +219,36 @@ access key with state."
         association = SlackAuthState.new(state_id: state_id,
                                          access_key: access_key)
         association.save
-        return true
+        true
       rescue Exception => e
         SlackAPI.logger.error("Unable to save auth state: #{e}")
-        return false
+        false
       end
     end
 
     # Gets an access key from a given state ID
     def self.get_access_key_from_state(state_id:)
-      begin
-        results = SlackAuthState.where(state_id: state_id)
-        return nil if results.nil? or results.count == 0
-        results.first.access_key
-      rescue Aws::DynamoDB::Errors::ResourceNotFoundException
-        SlackAPI.logger.warn("State associations table not created yet.")
-        return nil
-      end
+      results = SlackAuthState.where(state_id: state_id)
+      return nil if results.nil? || results.count.zero?
+
+      results.first.access_key
+    rescue Aws::DynamoDB::Errors::ResourceNotFoundException
+      SlackAPI.logger.warn('State associations table not created yet.')
+      nil
     end
 
     def self.configure_aws!
-      if ENV['APP_AWS_SECRET_ACCESS_KEY'].nil? or ENV['APP_AWS_ACCESS_KEY_ID'].nil?
-        return false
-      end
+      return false if ENV['APP_AWS_SECRET_ACCESS_KEY'].nil? || ENV['APP_AWS_ACCESS_KEY_ID'].nil?
+
       begin
         ::Aws.config.update(
           credentials: ::Aws::Credentials.new(ENV['APP_AWS_ACCESS_KEY_ID'],
-                                              ENV['APP_AWS_SECRET_ACCESS_KEY']))
-        return true
+                                              ENV['APP_AWS_SECRET_ACCESS_KEY'])
+        )
+        true
       rescue Exception => e
         SlackAPI.logger.error("Unable to configure Aws: #{e}")
-        return false
+        false
       end
     end
   end

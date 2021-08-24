@@ -1,12 +1,15 @@
+# frozen_string_literal: true
+
 require 'spec_helper'
 
-describe "Slack OAuth methods" do
+describe 'Slack OAuth methods' do
   context 'Getting tokens' do
-    it "Should get a token", :unit do
+    it 'gets a token', :unit do
       url_to_mock = 'https://slack.com/api/oauth.access'
       request_opts = {
         headers: { 'Content-Type': 'application/x-www-formencoded' }.transform_keys(&:to_s),
         body: nil,
+        debug_output: nil,
         query: {
           client_id: 'fake',
           client_secret: 'fake',
@@ -27,11 +30,13 @@ describe "Slack OAuth methods" do
     end
   end
 
-  context "Validating tokens" do
-    it "Should tell me when tokens are expired", :unit do
+  context 'Validating tokens' do
+    it 'tells me when tokens are expired', :unit do
       url_to_mock = 'https://slack.com/api/auth.test'
       request_opts = {
         headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer fake-token' }.transform_keys(&:to_s),
+        params: nil,
+        debug_output: nil
       }
       mocked_response_body = {
         ok: false,
@@ -43,10 +48,12 @@ describe "Slack OAuth methods" do
       expect(SlackAPI::Slack::OAuth.token_expired?(token: 'fake-token')).to be true
     end
 
-    it "Should tell me when tokens are not expired", :unit do
+    it 'tells me when tokens are not expired', :unit do
       url_to_mock = 'https://slack.com/api/auth.test'
       request_opts = {
         headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer fake-token' }.transform_keys(&:to_s),
+        params: nil,
+        debug_output: nil
       }
       allow(HTTParty).to receive(:get)
         .with(url_to_mock, request_opts)
@@ -54,10 +61,12 @@ describe "Slack OAuth methods" do
       expect(SlackAPI::Slack::OAuth.token_expired?(token: 'fake-token')).to be false
     end
 
-    it "Should tell me when tokens can't be validated due to invalid responses", :unit do
+    it "tells me when tokens can't be validated due to invalid responses", :unit do
       url_to_mock = 'https://slack.com/api/auth.test'
       request_opts = {
         headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer fake-token' }.transform_keys(&:to_s),
+        params: nil,
+        debug_output: nil
       }
       allow(HTTParty).to receive(:get)
         .with(url_to_mock, request_opts)

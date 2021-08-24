@@ -1,7 +1,10 @@
+# frozen_string_literal: true
+
 require 'slack-api/slack/api'
 
 module SlackAPI
   module Slack
+    # This provides methods for retrieving and verifying OAuth access tokens.
     module OAuth
       # Retrieve an OAuth token from a given code and client ID/secret.
       def self.access(client_id:, client_secret:, code:, redirect_uri:)
@@ -19,7 +22,7 @@ module SlackAPI
       def self.token_valid?(token:)
         response = SlackAPI::Slack::API.get_from(endpoint: 'auth.test', token: token)
         json = JSON.parse(response.body, symbolize_names: true)
-        if not json.has_key?(:ok) or (!json[:ok] and json[:error] != 'invalid_auth')
+        if !json.key?(:ok) || (!json[:ok] && (json[:error] != 'invalid_auth'))
           SlackAPI.logger.warn("Token ending in #{scrubbed_token(token)} is invalid: #{json}")
           false
         end
@@ -33,9 +36,8 @@ module SlackAPI
       end
 
       def self.scrubbed_token(token:)
-        token[0..7]
+        token[0..7] unless token.nil?
       end
     end
   end
 end
-

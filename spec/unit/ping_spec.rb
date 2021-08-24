@@ -1,7 +1,9 @@
+# frozen_string_literal: true
+
 require 'spec_helper'
 
 describe 'Slack API Basics' do
-  it 'Should ping back', :unit do
+  it 'pings back', :unit do
     expected_response = {
       body: { message: 'sup dawg' }.to_json,
       statusCode: 200

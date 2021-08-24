@@ -1,8 +1,10 @@
+# frozen_string_literal: true
+
 require 'spec_helper'
 
-describe "Slack Profiles" do
+describe 'Slack Profiles' do
   context 'Validation' do
-    it "Should error if status is not set", :unit do
+    it 'errors if status is not set', :unit do
       fake_event = JSON.parse({
         requestContext: {
           identity: {
@@ -21,50 +23,52 @@ describe "Slack Profiles" do
         statusCode: 422,
         body: {
           status: 'error',
-          message: "Parameter required: text"
-        }.to_json,
+          message: 'Parameter required: text'
+        }.to_json
       }
       expect(SlackAPI::Slack::Profile::Status.set!(fake_event))
         .to eq expected_response
     end
 
-    it 'Should error if token is expired', :unit do
-    fake_event = JSON.parse({
-      requestContext: {
-        identity: {
-          apiKey: 'fake-key'
+    it 'errors if token is expired', :unit do
+      fake_event = JSON.parse({
+        requestContext: {
+          identity: {
+            apiKey: 'fake-key'
+          }
+        },
+        queryStringParameters: {
+          text: 'fake-status'
         }
-      },
-      queryStringParameters: {
-        text: 'fake-status'
+      }.to_json)
+      expected_response = {
+        statusCode: 403,
+        body: {
+          status: 'error',
+          message: 'Token expired'
+        }.to_json
       }
-    }.to_json)
-    expected_response = {
-      statusCode: 403,
-      body: {
-        status: 'error',
-        message: 'Token expired'
-      }.to_json,
-    }
-    allow(SlackAPI::Auth).to receive(:get_slack_token).and_return({
-      statusCode: 200,
-      body: { token: 'fake-token' }.to_json
-    })
-    allow(SlackAPI::Slack::OAuth).to receive(:token_valid?).and_return true
-    allow(SlackAPI::Slack::OAuth).to receive(:token_expired?).and_return true
-    expect(SlackAPI::Slack::Profile::Status.set!(fake_event)).to eq expected_response
+      allow(SlackAPI::Auth).to receive(:get_slack_token).and_return({
+                                                                      statusCode: 200,
+                                                                      body: { token: 'fake-token' }.to_json
+                                                                    })
+      allow(SlackAPI::Slack::OAuth).to receive(:token_valid?).and_return true
+      allow(SlackAPI::Slack::OAuth).to receive(:token_expired?).and_return true
+      expect(SlackAPI::Slack::Profile::Status.set!(fake_event)).to eq expected_response
     end
   end
 
   context 'Profile setting' do
     fake_responses = {
       get: {
-        url: "https://slack.com/api/users.profile.get",
+        url: 'https://slack.com/api/users.profile.get',
         options: {
           headers: {
-            'Content-Type': 'application/x-www-formencoded',
+            'Content-Type': 'application/x-www-form-urlencoded',
             'Authorization': 'Bearer fake-token'
           }.transform_keys(&:to_s),
+          debug_output: nil,
+          params: nil
         },
         response: {
           ok: true,
@@ -75,18 +79,19 @@ describe "Slack Profiles" do
         }.to_json
       },
       post: {
-        url: "https://slack.com/api/users.profile.set",
+        url: 'https://slack.com/api/users.profile.set',
         options: {
           headers: {
-            'Content-Type': 'application/json',
+            'Content-Type': 'application/x-www-form-urlencoded',
             'Authorization': 'Bearer fake-token'
           }.transform_keys(&:to_s),
           body: nil,
+          debug_output: nil,
           query: {
-            profile: URI.encode({
+            profile: {
               status_text: 'new-status',
               status_emoji: ':ok:'
-            }.to_json)
+            }.to_json
           }
         },
         response: {
@@ -98,7 +103,7 @@ describe "Slack Profiles" do
         }.to_json
       }
     }
-    it "Should set the user's profile", :unit do
+    it "sets the user's profile", :unit do
       fake_event = JSON.parse({
         requestContext: {
           identity: {
@@ -120,22 +125,22 @@ describe "Slack Profiles" do
         statusCode: 200
       }
       allow(SlackAPI::Auth).to receive(:get_slack_token).and_return({
-        statusCode: 200,
-        body: { token: 'fake-token' }.to_json
-      })
+                                                                      statusCode: 200,
+                                                                      body: { token: 'fake-token' }.to_json
+                                                                    })
       allow(SlackAPI::Slack::OAuth).to receive(:token_valid?).and_return true
       allow(SlackAPI::Slack::OAuth).to receive(:token_expired?).and_return false
-      [:get, :post].each do |method|
+      %i[get post].each do |method|
         url = fake_responses[method][:url]
         httparty_options = fake_responses[method][:options]
         mocked_response_body = fake_responses[method][:response]
         allow(HTTParty).to receive(method).with(url, httparty_options)
-          .and_return(double(HTTParty::Response, code: 200, body: mocked_response_body))
+                                          .and_return(double(HTTParty::Response, code: 200, body: mocked_response_body))
       end
       expect(SlackAPI::Slack::Profile::Status.set!(fake_event)).to eq expected_response
     end
 
-    it "Should set the user's profile and support emojis 💪 🚀", :unit do
+    it "sets the user's profile and support emojis 💪 🚀", :unit do
       fake_event = JSON.parse({
         requestContext: {
           identity: {
@@ -158,25 +163,25 @@ describe "Slack Profiles" do
         statusCode: 200
       }
       new_emoji = ':rocket:'
-      fake_responses[:post][:options][:query][:profile].gsub!(/:ok:/,new_emoji)
-      fake_responses[:post][:response].gsub!(/:ok:/,new_emoji)
+      fake_responses[:post][:options][:query][:profile].gsub!(/:ok:/, new_emoji)
+      fake_responses[:post][:response].gsub!(/:ok:/, new_emoji)
       allow(SlackAPI::Auth).to receive(:get_slack_token).and_return({
-        statusCode: 200,
-        body: { token: 'fake-token' }.to_json
-      })
+                                                                      statusCode: 200,
+                                                                      body: { token: 'fake-token' }.to_json
+                                                                    })
       allow(SlackAPI::Slack::OAuth).to receive(:token_valid?).and_return true
       allow(SlackAPI::Slack::OAuth).to receive(:token_expired?).and_return false
-      [:get, :post].each do |method|
+      %i[get post].each do |method|
         url = fake_responses[method][:url]
         httparty_options = fake_responses[method][:options]
         mocked_response_body = fake_responses[method][:response]
         allow(HTTParty).to receive(method).with(url, httparty_options)
-          .and_return(double(HTTParty::Response, code: 200, body: mocked_response_body))
+                                          .and_return(double(HTTParty::Response, code: 200, body: mocked_response_body))
       end
       expect(SlackAPI::Slack::Profile::Status.set!(fake_event)).to eq expected_response
     end
 
-    it "Shouldn't change my status if nothing changed", :unit do
+    it 'does not change my status if nothing changed', :unit do
       fake_event = JSON.parse({
         requestContext: {
           identity: {
@@ -197,23 +202,19 @@ describe "Slack Profiles" do
       }
       new_emoji = ':rocket:'
       fake_responses[:get][:response]
-        .gsub!(/:ok:/,new_emoji)
+        .gsub!(/:ok:/, new_emoji)
         .gsub!(/old-status/, 'new-status')
-      fake_responses[:post][:options][:query][:profile]
-        .gsub!(/:ok:/,new_emoji)
       allow(SlackAPI::Auth).to receive(:get_slack_token).and_return({
-        statusCode: 200,
-        body: { token: 'fake-token' }.to_json
-      })
+                                                                      statusCode: 200,
+                                                                      body: { token: 'fake-token' }.to_json
+                                                                    })
       allow(SlackAPI::Slack::OAuth).to receive(:token_valid?).and_return true
       allow(SlackAPI::Slack::OAuth).to receive(:token_expired?).and_return false
-      [:get, :post].each do |method|
-        url = fake_responses[method][:url]
-        httparty_options = fake_responses[method][:options]
-        mocked_response_body = fake_responses[method][:response]
-        allow(HTTParty).to receive(method).with(url, httparty_options)
-          .and_return(double(HTTParty::Response, code: 200, body: mocked_response_body))
-      end
+      url = fake_responses[:get][:url]
+      httparty_options = fake_responses[:get][:options]
+      mocked_response_body = fake_responses[:get][:response]
+      allow(HTTParty).to receive(:get).with(url, httparty_options)
+                                      .and_return(double(HTTParty::Response, code: 200, body: mocked_response_body))
       expect(SlackAPI::Slack::Profile::Status.set!(fake_event)).to eq expected_response
     end
   end
