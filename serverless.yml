@@ -94,6 +94,21 @@ functions:
           path: status
           method: post
           private: true
+  status_get:
+    handler: bin/slack-api.status_get
+    description: Retrieves the user's Slack profile after authenticating.
+    timeout: 30
+    environment:
+      ENVIRONMENT: ${env:ENVIRONMENT}
+      GEM_PATH: vendor/bundle/ruby/2.7.0
+      APP_AWS_ACCESS_KEY_ID: ${file(./secrets/app_account_ak)}
+      APP_AWS_SECRET_ACCESS_KEY: ${file(./secrets/app_account_sk)}
+      LOG_LEVEL: debug
+    events:
+      - http:
+          path: status
+          method: get
+          private: true
   ping:
     handler: bin/slack-api.ping
     description: Healthiness endpoint for APIs.

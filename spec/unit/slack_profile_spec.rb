@@ -58,6 +58,62 @@ describe 'Slack Profiles' do
     end
   end
 
+  context 'Profile getting' do
+    fake_responses = {
+      get: {
+        url: 'https://slack.com/api/users.profile.get',
+        options: {
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'Authorization': 'Bearer fake-token'
+          }.transform_keys(&:to_s),
+          debug_output: nil,
+          params: nil
+        },
+        response: {
+          ok: true,
+          profile: {
+            status_text: 'old-status',
+            status_emoji: ':ok:',
+            status_expiration: 123
+          }
+        }.to_json
+      }
+    }
+    it "get the user's status from their profile", :unit do
+      fake_event = JSON.parse({
+        requestContext: {
+          identity: {
+            apiKey: 'fake-key'
+          }
+        }
+      }.to_json)
+      expected_response = {
+        body: {
+          status: 'ok',
+          data: {
+            status_text: 'old-status',
+            status_emoji: ':ok:',
+            status_expiration: 123
+          }
+        }.to_json,
+        statusCode: 200
+      }
+      allow(SlackAPI::Auth).to receive(:get_slack_token).and_return({
+                                                                      statusCode: 200,
+                                                                      body: { token: 'fake-token' }.to_json
+                                                                    })
+      allow(SlackAPI::Slack::OAuth).to receive(:token_valid?).and_return true
+      allow(SlackAPI::Slack::OAuth).to receive(:token_expired?).and_return false
+      url = fake_responses[:get][:url]
+      httparty_options = fake_responses[:get][:options]
+      mocked_response_body = fake_responses[:get][:response]
+      allow(HTTParty).to receive(:get).with(url, httparty_options)
+                                      .and_return(double(HTTParty::Response, code: 200, body: mocked_response_body))
+      expect(SlackAPI::Slack::Profile::Status.get!(fake_event)).to eq expected_response
+    end
+  end
+
   context 'Profile setting' do
     fake_responses = {
       get: {

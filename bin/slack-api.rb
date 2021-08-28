@@ -1,8 +1,5 @@
-#!/usr/bin/env ruby
 $LOAD_PATH.unshift('./lib')
-if Dir.exist? './vendor'
-  $LOAD_PATH.unshift('./vendor/bundle/ruby/**gems/**/lib')
-end
+$LOAD_PATH.unshift('./vendor/bundle/ruby/**gems/**/lib') if Dir.exist? './vendor'
 
 require 'slack-api'
 require 'json'
@@ -30,4 +27,9 @@ end
 # Set profile statuses
 def status_set(event: {}, context: {})
   SlackAPI::Slack::Profile::Status.set!(event)
+end
+
+# Get profile statuses
+def status_get(event: {}, context: {})
+  SlackAPI::Slack::Profile::Status.get!(event)
 end

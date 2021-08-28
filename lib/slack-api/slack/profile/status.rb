@@ -18,6 +18,37 @@ module SlackAPI
           }
         end
 
+        def self.get!(event)
+          # I should probably make an authenticated session a class that has
+          # its token in it, but I'm tight af on time...so ugly it is!
+          token_data = SlackAPI::Auth.get_slack_token(event: event)
+          token = JSON.parse(token_data[:body])['token']
+          unless SlackAPI::Slack::OAuth.token_valid?(token: token)
+            return SlackAPI::AWSHelpers::APIGateway.unauthenticated(message: 'Unable to validate token.')
+          end
+          if SlackAPI::Slack::OAuth.token_expired?(token: token)
+            return SlackAPI::AWSHelpers::APIGateway.unauthenticated(message: 'Token expired')
+          end
+
+          begin
+            current_profile = get_current_profile(token: token)
+            SlackAPI::AWSHelpers::APIGateway.ok(
+              additional_json: {
+                data: {
+                  status_text: current_profile[:status_text],
+                  status_emoji: current_profile[:status_emoji],
+                  status_expiration: current_profile[:status_expiration]
+                }
+              }
+            )
+          rescue Exception => e
+            SlackAPI.logger.error "[#{SlackAPI::Slack::OAuth.scrubbed_token(token: token)}] Couldn't get profile: #{e} -> #{e.backtrace.join('\n')}]"
+            SlackAPI::AWSHelpers::APIGateway.error(
+              message: "Something weird happened while getting your profile: #{e}"
+            )
+          end
+        end
+
         def self.set!(event)
           param_map = {}
           %w[text emoji].each do |parameter|
