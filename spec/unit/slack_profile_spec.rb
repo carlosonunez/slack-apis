@@ -235,6 +235,53 @@ describe 'Slack Profiles' do
                                           .and_return(double(HTTParty::Response, code: 200, body: mocked_response_body))
       end
       expect(SlackAPI::Slack::Profile::Status.set!(fake_event)).to eq expected_response
+      fake_responses[:post][:options][:query][:profile].gsub!(new_emoji, ':ok:')
+      fake_responses[:post][:response].gsub!(new_emoji, ':ok:')
+    end
+
+    it "sets the user's profile and supports expiration times in UNIX time", :unit do
+      fake_event = JSON.parse({
+        requestContext: {
+          identity: {
+            apiKey: 'fake-key'
+          }
+        },
+        queryStringParameters: {
+          text: 'new-status',
+          expiration: '123'
+        }
+      }.to_json)
+      expected_response = {
+        body: {
+          status: 'ok',
+          changed: {
+            old: ':ok: old-status',
+            new: ':ok: new-status',
+            expires_on: 'Thu, 01 Jan 1970 00:02:03 +0000'
+          }
+        }.to_json,
+        statusCode: 200
+      }
+      fake_profile = JSON.parse(fake_responses[:post][:options][:query][:profile])
+      fake_profile[:status_expiration] = '123'
+      fake_responses[:post][:options][:query][:profile] = fake_profile.to_json
+
+      allow(SlackAPI::Auth)
+        .to receive(:get_slack_token)
+        .and_return({
+                      statusCode: 200,
+                      body: { token: 'fake-token' }.to_json
+                    })
+      allow(SlackAPI::Slack::OAuth).to receive(:token_valid?).and_return true
+      allow(SlackAPI::Slack::OAuth).to receive(:token_expired?).and_return false
+      %i[get post].each do |method|
+        url = fake_responses[method][:url]
+        httparty_options = fake_responses[method][:options]
+        mocked_response_body = fake_responses[method][:response]
+        allow(HTTParty).to receive(method).with(url, httparty_options)
+                                          .and_return(double(HTTParty::Response, code: 200, body: mocked_response_body))
+      end
+      expect(SlackAPI::Slack::Profile::Status.set!(fake_event)).to eq expected_response
     end
 
     it 'does not change my status if nothing changed', :unit do

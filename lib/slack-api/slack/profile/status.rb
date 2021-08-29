@@ -5,6 +5,7 @@ require 'slack-api/auth'
 require 'slack-api/aws_helpers/api_gateway'
 require 'slack-api/slack/api'
 require 'uri'
+require 'time'
 
 module SlackAPI
   module Slack
@@ -51,7 +52,7 @@ module SlackAPI
 
         def self.set!(event)
           param_map = {}
-          %w[text emoji].each do |parameter|
+          %w[text emoji expiration].each do |parameter|
             value = SlackAPI::AWSHelpers::APIGateway::Events.get_param(event: event,
                                                                        param: parameter)
             if value.nil? && (parameter == 'text')
@@ -75,15 +76,18 @@ module SlackAPI
 
           text = param_map['text']
           emoji = param_map['emoji']
+          expiration_unix = param_map['expiration']
           begin
             current_profile = get_current_profile(token: token)
             current_text = current_profile[:status_text]
             current_emoji = current_profile[:status_emoji]
             SlackAPI.logger.debug("Comparing [#{text} -> #{emoji}] with [#{current_text} -> #{current_emoji}]")
             if (text == current_text) && (emoji == current_emoji)
-              return SlackAPI::AWSHelpers::APIGateway.ok(additional_json: {
-                                                           changed: {}
-                                                         })
+              return SlackAPI::AWSHelpers::APIGateway.ok(
+                additional_json: {
+                  changed: {}
+                }
+              )
             end
             new_emoji = if emoji.nil?
                           current_emoji
@@ -92,13 +96,16 @@ module SlackAPI
                         end
             set_profile(token: token,
                         text: text,
-                        emoji: new_emoji)
+                        emoji: new_emoji,
+                        expiration: expiration_unix)
+            payload = {
+              old: "#{current_profile[:status_emoji]} #{current_profile[:status_text]}",
+              new: "#{new_emoji} #{text}"
+            }
+            payload[:expires_on] = Time.at(expiration_unix.to_i).rfc2822 unless expiration_unix.nil?
             SlackAPI::AWSHelpers::APIGateway.ok(
               additional_json: {
-                changed: {
-                  old: "#{current_profile[:status_emoji]} #{current_profile[:status_text]}",
-                  new: "#{new_emoji} #{text}"
-                }
+                changed: payload
               }
             )
           rescue Exception => e
@@ -129,11 +136,12 @@ module SlackAPI
           json[:profile]
         end
 
-        def self.set_profile(token:, text:, emoji:)
+        def self.set_profile(token:, text:, emoji:, expiration: nil)
           updated_profile = {
             status_text: text,
             status_emoji: emoji
           }
+          updated_profile[:status_expiration] = expiration unless expiration.nil?
           response = SlackAPI::Slack::API.post_to(endpoint: 'users.profile.set',
                                                   token: token,
                                                   params: {
