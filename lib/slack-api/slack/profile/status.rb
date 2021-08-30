@@ -81,8 +81,12 @@ module SlackAPI
             current_profile = get_current_profile(token: token)
             current_text = current_profile[:status_text]
             current_emoji = current_profile[:status_emoji]
-            SlackAPI.logger.debug("Comparing [#{text} -> #{emoji}] with [#{current_text} -> #{current_emoji}]")
-            if (text == current_text) && (emoji == current_emoji)
+            current_expiration = current_profile[:status_expiration]
+            SlackAPI.logger.debug("Comparing [#{text} -> #{emoji} -> #{expiration_unix}] with \
+                                  [#{current_text} -> #{current_emoji} -> #{current_expiration}]")
+            if (text == current_text) &&
+               (emoji == current_emoji) &&
+               (expiration_unix == current_expiration)
               return SlackAPI::AWSHelpers::APIGateway.ok(
                 additional_json: {
                   changed: {}

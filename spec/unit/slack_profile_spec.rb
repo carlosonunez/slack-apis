@@ -130,7 +130,8 @@ describe 'Slack Profiles' do
           ok: true,
           profile: {
             status_text: 'old-status',
-            status_emoji: ':ok:'
+            status_emoji: ':ok:',
+            status_expiration: 123
           }
         }.to_json
       },
@@ -293,7 +294,8 @@ describe 'Slack Profiles' do
         },
         queryStringParameters: {
           text: 'new-status',
-          emoji: ':rocket:'
+          emoji: ':rocket:',
+          expiration: 123
         }
       }.to_json)
       expected_response = {
