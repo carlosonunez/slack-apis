@@ -1,9 +1,6 @@
-FROM ruby:2.7-alpine
+FROM ruby:2.7
 MAINTAINER Carlos Nunez <dev@carlosnunez.me>
 ARG ENVIRONMENT
-
-RUN apk add --no-cache ruby-dev  ruby-nokogiri build-base libxml2-dev \
-libxslt-dev postgresql-dev sqlite sqlite-libs sqlite-dev less
 
 COPY Gemfile /
 RUN bundle install --gemfile /Gemfile

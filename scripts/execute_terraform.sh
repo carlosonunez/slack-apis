@@ -18,16 +18,18 @@ shift
 
 export TF_VAR_environment=$ENVIRONMENT
 
-terraform init -backend-config="bucket=${TERRAFORM_STATE_S3_BUCKET}" \
+cmd=(tofu init -backend-config="bucket=${TERRAFORM_STATE_S3_BUCKET}" \
   -backend-config="key=${TERRAFORM_STATE_S3_KEY}/${ENVIRONMENT}" \
-  -backend-config="region=$AWS_REGION"
+  -backend-config="region=$AWS_REGION")
+test -n "$TF_UPGRADE" && cmd+=(-upgrade)
+"${cmd[@]}" || exit 1
 
-terraform "$action" "$@" && \
+tofu "$action" "$@" && \
   if [ "$action" == "apply" ]
   then
     mkdir -p ./secrets
     for output_var in app_account_ak app_account_sk certificate_arn
     do
-      write_secret "$(terraform output "$output_var")" "$output_var"
+      write_secret "$(tofu output -raw "$output_var")" "$output_var"
     done
   fi

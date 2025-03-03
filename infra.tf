@@ -138,10 +138,12 @@ resource "aws_dynamodb_table" "state_associations" {
 
 output "app_account_ak" {
   value = aws_iam_access_key.app.id
+  sensitive = true
 }
 
 output "app_account_sk" {
   value = aws_iam_access_key.app.secret
+  sensitive = true
 }
 
 output "certificate_arn" {

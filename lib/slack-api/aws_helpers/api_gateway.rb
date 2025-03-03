@@ -14,7 +14,8 @@ module SlackAPI
       #       Retrieves the endpoint from a request, optionally with a part of its path removed.
       def self.get_endpoint(event, path_to_remove: '/auth')
         # TODO: Fix TypeError Hash into String errror from API Gateway.
-        path = event['requestContext']['path'] || raise('Path not found in event.')
+        path = event['requestContext']['path']
+        raise "Path not found in event" if path.empty?
         path_subbed = path.gsub!(path_to_remove, '')
         host = event['headers']['Host'] || raise('Host not found in event.')
         "#{host}#{path_subbed}"

@@ -5,11 +5,11 @@ plugins:
   - serverless-domain-manager
 
 service: slack-apis
-frameworkVersion: '2.43.1'
 
 provider:
   name: aws
-  runtime: ruby2.7
+  runtime: ruby3.2
+  architecture: arm64
   region: ${env:AWS_REGION, 'us-east-2'}
   memorySize: 256
   deploymentBucket:
